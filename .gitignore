@@ -39,3 +39,18 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# IDE and editors (add these if you use different editors)
+.vscode/
+.idea/
+*.swp
+*.swo
+
+
+
+# Cache directories
+.cache/
+.parcel-cache/
+
+# Optional: More specific log patterns
+*.log
