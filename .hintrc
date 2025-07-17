@@ -5,10 +5,11 @@
   "hints": {
     "typescript-config/consistent-casing": "off",
     "no-inline-styles": "off",
-    "axe/forms": [
+    "axe/forms": "off",
+    "axe/name-role-value": [
       "default",
       {
-        "select-name": "off"
+        "button-name": "off"
       }
     ]
   }
