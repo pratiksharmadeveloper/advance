@@ -1,7 +1,8 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { 
   Eye, 
   EyeOff, 
@@ -12,7 +13,9 @@ import {
   Settings,
   Phone,
   HelpCircle,
-  MessageSquare
+  MessageSquare,
+  AlertCircle,
+  CheckCircle
 } from 'lucide-react'
 import { CONTACT_INFO } from '@/lib/constants'
 
@@ -22,48 +25,199 @@ interface LoginForm {
   rememberMe: boolean
 }
 
+interface OTPForm {
+  email: string
+  otp: string
+}
+
 export default function LoginPage() {
+  const router = useRouter()
+  const searchParams = useSearchParams()
   const [loginData, setLoginData] = useState<LoginForm>({
     email: '',
     password: '',
     rememberMe: false
   })
+  const [otpData, setOTPData] = useState<OTPForm>({
+    email: '',
+    otp: ''
+  })
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [loginMethod, setLoginMethod] = useState<'password' | 'otp'>('password')
+  const [otpSent, setOtpSent] = useState(false)
+  const [otpTimer, setOtpTimer] = useState(0)
+  const [errors, setErrors] = useState<Record<string, string>>({})
+  const [successMessage, setSuccessMessage] = useState('')
 
-  const handleInputChange = (field: keyof LoginForm, value: string | boolean) => {
-    setLoginData(prev => ({ ...prev, [field]: value }))
+  // Check for success messages from URL params
+  useEffect(() => {
+    const message = searchParams.get('message')
+    if (message === 'registration-success') {
+      setSuccessMessage('Registration successful! Please sign in to your account.')
+    }
+  }, [searchParams])
+
+  // OTP timer countdown
+  useEffect(() => {
+    let interval: NodeJS.Timeout
+    if (otpTimer > 0) {
+      interval = setInterval(() => {
+        setOtpTimer(prev => prev - 1)
+      }, 1000)
+    }
+    return () => clearInterval(interval)
+  }, [otpTimer])
+
+  const validateEmail = (email: string) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    const phoneRegex = /^[0-9+\-\s()]+$/
+    return emailRegex.test(email) || phoneRegex.test(email)
+  }
+
+  const handleInputChange = (field: string, value: string | boolean) => {
+    if (loginMethod === 'password') {
+      setLoginData(prev => ({ ...prev, [field]: value }))
+    } else {
+      setOTPData(prev => ({ ...prev, [field]: value }))
+    }
+    
+    // Clear errors when user starts typing
+    if (errors[field]) {
+      setErrors(prev => ({ ...prev, [field]: '' }))
+    }
+  }
+
+  const validateLoginForm = () => {
+    const newErrors: Record<string, string> = {}
+    
+    if (loginMethod === 'password') {
+      if (!loginData.email.trim()) {
+        newErrors.email = 'Email or phone number is required'
+      } else if (!validateEmail(loginData.email)) {
+        newErrors.email = 'Please enter a valid email or phone number'
+      }
+      
+      if (!loginData.password.trim()) {
+        newErrors.password = 'Password is required'
+      }
+    } else {
+      if (!otpData.email.trim()) {
+        newErrors.email = 'Email or phone number is required'
+      } else if (!validateEmail(otpData.email)) {
+        newErrors.email = 'Please enter a valid email or phone number'
+      }
+      
+      if (otpSent && !otpData.otp.trim()) {
+        newErrors.otp = 'OTP is required'
+      }
+    }
+    
+    setErrors(newErrors)
+    return Object.keys(newErrors).length === 0
   }
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
-    setIsLoading(true)
     
-    // Simulate login process
-    setTimeout(() => {
-      alert('Login successful! Redirecting to dashboard...')
+    if (!validateLoginForm()) return
+    
+    setIsLoading(true)
+    setSuccessMessage('')
+    
+    try {
+      // Simulate login API call
+      await new Promise(resolve => setTimeout(resolve, 2000))
+      
+      // Mock authentication logic
+      if (loginData.email === 'admin@hospital.com' && loginData.password === 'admin123') {
+        // Admin login
+        localStorage.setItem('userType', 'admin')
+        localStorage.setItem('userEmail', loginData.email)
+        router.push('/admin')
+      } else if (loginData.email && loginData.password) {
+        // Patient login
+        localStorage.setItem('userType', 'patient')
+        localStorage.setItem('userEmail', loginData.email)
+        router.push('/patient/dashboard')
+      } else {
+        setErrors({ general: 'Invalid credentials. Please try again.' })
+      }
+    } catch (loginError) {
+      console.error('Login error:', loginError)
+      setErrors({ general: 'Login failed. Please try again.' })
+    } finally {
       setIsLoading(false)
-      // In real app: redirect to dashboard
-      // router.push('/dashboard')
-    }, 2000)
+    }
   }
 
-  const handleOTPLogin = () => {
-    if (loginData.email.trim()) {
-      alert(`OTP sent to ${loginData.email}`)
-    } else {
-      alert('Please enter your email or phone number first')
+  const handleSendOTP = async () => {
+    if (!otpData.email.trim() || !validateEmail(otpData.email)) {
+      setErrors({ email: 'Please enter a valid email or phone number' })
+      return
+    }
+    
+    setIsLoading(true)
+    
+    try {
+      // Simulate OTP sending
+      await new Promise(resolve => setTimeout(resolve, 1500))
+      
+      setOtpSent(true)
+      setOtpTimer(60) // 60 seconds countdown
+      setSuccessMessage(`OTP sent to ${otpData.email}`)
+      setErrors({})
+    } catch (otpError) {
+      console.error('OTP error:', otpError)
+      setErrors({ general: 'Failed to send OTP. Please try again.' })
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handleOTPLogin = async (e: React.FormEvent) => {
+    e.preventDefault()
+    
+    if (!validateLoginForm()) return
+    
+    setIsLoading(true)
+    
+    try {
+      // Simulate OTP verification
+      await new Promise(resolve => setTimeout(resolve, 1500))
+      
+      // Mock OTP verification (accept any 6-digit number)
+      if (otpData.otp.length === 6) {
+        localStorage.setItem('userType', 'patient')
+        localStorage.setItem('userEmail', otpData.email)
+        router.push('/patient/dashboard')
+      } else {
+        setErrors({ otp: 'Invalid OTP. Please try again.' })
+      }
+    } catch (verificationError) {
+      console.error('OTP verification error:', verificationError)
+      setErrors({ general: 'OTP verification failed. Please try again.' })
+    } finally {
+      setIsLoading(false)
     }
   }
 
   const handleGoogleLogin = () => {
-    alert('Google login integration would be implemented here')
+    // Mock Google login
+    setIsLoading(true)
+    setTimeout(() => {
+      localStorage.setItem('userType', 'patient')
+      localStorage.setItem('userEmail', 'user@gmail.com')
+      router.push('/patient/dashboard')
+    }, 2000)
   }
 
-  const validateForm = () => {
-    return loginData.email.trim() !== '' && 
-           (loginMethod === 'otp' || loginData.password.trim() !== '')
+  const handleMethodChange = (method: 'password' | 'otp') => {
+    setLoginMethod(method)
+    setErrors({})
+    setSuccessMessage('')
+    setOtpSent(false)
+    setOtpTimer(0)
   }
 
   const features = [
@@ -91,7 +245,6 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-
       {/* Header Section */}
       <header className="w-full bg-white py-12">
         <div className="max-w-7xl mx-auto px-4">
@@ -113,6 +266,16 @@ export default function LoginPage() {
                 <span>Your data is secure and encrypted</span>
               </div>
             </div>
+            
+            {/* Demo Credentials */}
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <h3 className="font-medium text-blue-800 mb-2">Demo Credentials</h3>
+              <div className="text-sm text-blue-700 space-y-1">
+                <p><strong>Admin:</strong> admin@hospital.com / admin123</p>
+                <p><strong>Patient:</strong> Any email / Any password</p>
+                <p><strong>OTP:</strong> Use any 6-digit number</p>
+              </div>
+            </div>
           </div>
         </div>
       </header>
@@ -125,10 +288,26 @@ export default function LoginPage() {
               <h2 className="text-2xl font-semibold text-blue-800 mb-6">Welcome Back</h2>
               <p className="text-gray-600 mb-6">Sign in to your patient portal</p>
 
+              {/* Success Message */}
+              {successMessage && (
+                <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg flex items-center">
+                  <CheckCircle className="h-5 w-5 text-green-500 mr-2" />
+                  <span className="text-green-700">{successMessage}</span>
+                </div>
+              )}
+
+              {/* Error Message */}
+              {errors.general && (
+                <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-center">
+                  <AlertCircle className="h-5 w-5 text-red-500 mr-2" />
+                  <span className="text-red-700">{errors.general}</span>
+                </div>
+              )}
+
               {/* Login Method Toggle */}
               <div className="flex bg-gray-100 rounded-lg p-1 mb-6">
                 <button
-                  onClick={() => setLoginMethod('password')}
+                  onClick={() => handleMethodChange('password')}
                   className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
                     loginMethod === 'password'
                       ? 'bg-white text-blue-600 shadow-sm'
@@ -138,7 +317,7 @@ export default function LoginPage() {
                   Password Login
                 </button>
                 <button
-                  onClick={() => setLoginMethod('otp')}
+                  onClick={() => handleMethodChange('otp')}
                   className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
                     loginMethod === 'otp'
                       ? 'bg-white text-blue-600 shadow-sm'
@@ -149,25 +328,27 @@ export default function LoginPage() {
                 </button>
               </div>
 
-              <form onSubmit={handleLogin}>
-                {/* Email/Phone Field */}
-                <div className="mb-4">
-                  <label className="block text-gray-700 font-medium mb-2" htmlFor="email">
-                    Email or Phone Number
-                  </label>
-                  <input
-                    type="text"
-                    id="email"
-                    placeholder="Enter your email or phone"
-                    value={loginData.email}
-                    onChange={(e) => handleInputChange('email', e.target.value)}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    required
-                  />
-                </div>
+              {/* Password Login Form */}
+              {loginMethod === 'password' && (
+                <form onSubmit={handleLogin}>
+                  <div className="mb-4">
+                    <label className="block text-gray-700 font-medium mb-2" htmlFor="email">
+                      Email or Phone Number
+                    </label>
+                    <input
+                      type="text"
+                      id="email"
+                      placeholder="Enter your email or phone"
+                      value={loginData.email}
+                      onChange={(e) => handleInputChange('email', e.target.value)}
+                      className={`w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                        errors.email ? 'border-red-500' : 'border-gray-300'
+                      }`}
+                      required
+                    />
+                    {errors.email && <p className="text-red-500 text-sm mt-1">{errors.email}</p>}
+                  </div>
 
-                {/* Password Field (only for password login) */}
-                {loginMethod === 'password' && (
                   <div className="mb-6">
                     <label className="block text-gray-700 font-medium mb-2" htmlFor="password">
                       Password
@@ -179,7 +360,9 @@ export default function LoginPage() {
                         placeholder="Enter your password"
                         value={loginData.password}
                         onChange={(e) => handleInputChange('password', e.target.value)}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 pr-10"
+                        className={`w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 pr-10 ${
+                          errors.password ? 'border-red-500' : 'border-gray-300'
+                        }`}
                         required
                       />
                       <button
@@ -194,14 +377,12 @@ export default function LoginPage() {
                         )}
                       </button>
                     </div>
+                    {errors.password && <p className="text-red-500 text-sm mt-1">{errors.password}</p>}
                   </div>
-                )}
 
-                {/* Login/OTP Button */}
-                {loginMethod === 'password' ? (
                   <button
                     type="submit"
-                    disabled={!validateForm() || isLoading}
+                    disabled={isLoading}
                     className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md transition-colors duration-300 mb-4 disabled:bg-gray-300 disabled:cursor-not-allowed"
                   >
                     {isLoading ? (
@@ -213,19 +394,7 @@ export default function LoginPage() {
                       'Log In'
                     )}
                   </button>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={handleOTPLogin}
-                    disabled={!loginData.email.trim()}
-                    className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md transition-colors duration-300 mb-4 disabled:bg-gray-300 disabled:cursor-not-allowed"
-                  >
-                    Send OTP
-                  </button>
-                )}
 
-                {/* Remember Me & Forgot Password (only for password login) */}
-                {loginMethod === 'password' && (
                   <div className="flex items-center justify-between mb-6">
                     <div className="flex items-center">
                       <input
@@ -243,8 +412,112 @@ export default function LoginPage() {
                       Forgot Password?
                     </Link>
                   </div>
-                )}
-              </form>
+                </form>
+              )}
+
+              {/* OTP Login Form */}
+              {loginMethod === 'otp' && (
+                <div>
+                  <div className="mb-4">
+                    <label className="block text-gray-700 font-medium mb-2" htmlFor="otpEmail">
+                      Email or Phone Number
+                    </label>
+                    <input
+                      type="text"
+                      id="otpEmail"
+                      placeholder="Enter your email or phone"
+                      value={otpData.email}
+                      onChange={(e) => handleInputChange('email', e.target.value)}
+                      className={`w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                        errors.email ? 'border-red-500' : 'border-gray-300'
+                      }`}
+                      disabled={otpSent}
+                      required
+                    />
+                    {errors.email && <p className="text-red-500 text-sm mt-1">{errors.email}</p>}
+                  </div>
+
+                  {!otpSent ? (
+                    <button
+                      type="button"
+                      onClick={handleSendOTP}
+                      disabled={isLoading || !otpData.email.trim()}
+                      className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md transition-colors duration-300 mb-4 disabled:bg-gray-300 disabled:cursor-not-allowed"
+                    >
+                      {isLoading ? (
+                        <div className="flex items-center justify-center">
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                          Sending OTP...
+                        </div>
+                      ) : (
+                        'Send OTP'
+                      )}
+                    </button>
+                  ) : (
+                    <form onSubmit={handleOTPLogin}>
+                      <div className="mb-4">
+                        <label className="block text-gray-700 font-medium mb-2" htmlFor="otp">
+                          Enter OTP
+                        </label>
+                        <input
+                          type="text"
+                          id="otp"
+                          placeholder="Enter 6-digit OTP"
+                          value={otpData.otp}
+                          onChange={(e) => handleInputChange('otp', e.target.value.replace(/\D/g, '').slice(0, 6))}
+                          className={`w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                            errors.otp ? 'border-red-500' : 'border-gray-300'
+                          }`}
+                          maxLength={6}
+                          required
+                        />
+                        {errors.otp && <p className="text-red-500 text-sm mt-1">{errors.otp}</p>}
+                        <div className="flex items-center justify-between mt-2">
+                          <p className="text-sm text-gray-600">
+                            {otpTimer > 0 ? (
+                              `Resend OTP in ${otpTimer}s`
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={handleSendOTP}
+                                className="text-blue-600 hover:text-blue-800"
+                              >
+                                Resend OTP
+                              </button>
+                            )}
+                          </p>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setOtpSent(false)
+                              setOtpTimer(0)
+                              setOTPData({ email: '', otp: '' })
+                            }}
+                            className="text-sm text-gray-600 hover:text-gray-800"
+                          >
+                            Change Email
+                          </button>
+                        </div>
+                      </div>
+
+                      <button
+                        type="submit"
+                        disabled={isLoading || otpData.otp.length !== 6}
+                        className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md transition-colors duration-300 mb-4 disabled:bg-gray-300 disabled:cursor-not-allowed"
+                      >
+                        {isLoading ? (
+                          <div className="flex items-center justify-center">
+                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                            Verifying...
+                          </div>
+                        ) : (
+                          'Verify & Login'
+                        )}
+                      </button>
+                    </form>
+                  )}
+                </div>
+              )}
 
               {/* Alternative Login Methods */}
               <div className="space-y-4 mb-6">
@@ -259,15 +532,22 @@ export default function LoginPage() {
 
                 <button
                   onClick={handleGoogleLogin}
-                  className="w-full flex items-center justify-center space-x-2 bg-white border border-gray-300 text-gray-700 font-medium py-2 px-4 rounded-md hover:bg-gray-50 transition-colors duration-300"
+                  disabled={isLoading}
+                  className="w-full flex items-center justify-center space-x-2 bg-white border border-gray-300 text-gray-700 font-medium py-2 px-4 rounded-md hover:bg-gray-50 transition-colors duration-300 disabled:bg-gray-100 disabled:cursor-not-allowed"
                 >
-                  <svg className="h-5 w-5" viewBox="0 0 48 48">
-                    <path fill="#4285F4" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
-                    <path fill="#EA4335" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
-                    <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
-                    <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
-                  </svg>
-                  <span>Continue with Google</span>
+                  {isLoading ? (
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-600"></div>
+                  ) : (
+                    <>
+                      <svg className="h-5 w-5" viewBox="0 0 48 48">
+                        <path fill="#4285F4" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+                        <path fill="#EA4335" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+                        <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
+                        <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+                      </svg>
+                      <span>Continue with Google</span>
+                    </>
+                  )}
                 </button>
               </div>
 
