@@ -1,6 +1,6 @@
 import { DataSource } from 'typeorm';
 import { config } from 'dotenv';
-import entities from '@/entities/Index';
+import entities from '../entities/index';
 
 config();
 
@@ -14,8 +14,6 @@ export const AppDataSource = new DataSource({
   synchronize: process.env.NODE_ENV === 'development',
   logging: process.env.NODE_ENV === 'development',
   entities: Object.values(entities),
-  migrations: ['src/migrations/*.ts'],
-  subscribers: ['src/subscribers/*.ts'],
 });
 
 export const initializeDatabase = async (): Promise<void> => {

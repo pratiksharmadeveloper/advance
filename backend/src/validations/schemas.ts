@@ -1,6 +1,6 @@
 import * as yup from 'yup';
-import { UserRole } from '../entities/User';
-import { AppointmentStatus, AppointmentType } from '../entities/Appointment';
+import { UserRole } from '../interfaces/UserRole';
+import { AppointmentStatus, AppointmentType } from '../interfaces/AppointmentStatus';
 
 // User validation schemas
 export const registerSchema = yup.object({

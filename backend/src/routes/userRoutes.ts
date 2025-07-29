@@ -1,19 +1,18 @@
 import { Router } from 'express';
 import { UserController } from '../controllers/userController';
 import { auth, isAdmin } from '../middleware/auth';
-import { validate } from '../middleware/validation';
 import { registerSchema, loginSchema, updateProfileSchema } from '../validations/schemas';
 
 const router = Router();
 const userController = new UserController();
 
 // Public routes
-router.post('/register', validate(registerSchema), userController.register);
-router.post('/login', validate(loginSchema), userController.login);
+router.post('/register', userController.register);
+router.post('/login', userController.login);
 
 // Protected routes
 router.get('/profile', auth, userController.getProfile);
-router.put('/profile', auth, validate(updateProfileSchema), userController.updateProfile);
+router.put('/profile', auth, userController.updateProfile);
 
 // Admin only routes
 router.get('/', auth, isAdmin, userController.getAllUsers);

@@ -22,15 +22,3 @@ export const errorHandler = (
     }
   });
 };
-
-export const notFound = (req: Request, res: Response, next: NextFunction): void => {
-  const error = new Error(`Not Found - ${req.originalUrl}`) as AppError;
-  error.statusCode = 404;
-  next(error);
-};
-
-export const asyncHandler = (fn: Function) => {
-  return (req: Request, res: Response, next: NextFunction) => {
-    Promise.resolve(fn(req, res, next)).catch(next);
-  };
-}; 

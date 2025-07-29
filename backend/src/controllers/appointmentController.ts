@@ -1,7 +1,6 @@
 import { Request, Response } from 'express';
 import { AppointmentService } from '../services/appointmentService';
-import { asyncHandler } from '../middleware/errorHandler';
-import { AppointmentStatus, AppointmentType } from '../entities/Appointment';
+import { AppointmentStatus } from '../entities/Appointment';
 
 interface AuthRequest extends Request {
   user?: any;
@@ -11,7 +10,7 @@ interface AuthRequest extends Request {
 export class AppointmentController {
   private appointmentService = new AppointmentService();
 
-  createAppointment = asyncHandler(async (req: AuthRequest, res: Response) => {
+  createAppointment = async (req: AuthRequest, res: Response) => {
     const appointment = await this.appointmentService.createAppointment({
       ...(req.validatedData || req.body),
       userId: req.user.id
@@ -21,18 +20,18 @@ export class AppointmentController {
       success: true,
       data: { appointment }
     });
-  });
+  };
 
-  getAllAppointments = asyncHandler(async (req: Request, res: Response) => {
+  getAllAppointments = async (req: Request, res: Response) => {
     const appointments = await this.appointmentService.getAllAppointments();
     
     res.json({
       success: true,
       data: { appointments }
     });
-  });
+  };
 
-  getAppointmentById = asyncHandler(async (req: Request, res: Response) => {
+  getAppointmentById = async (req: Request, res: Response) => {
     const appointment = await this.appointmentService.getAppointmentById(req.params.id);
     
     if (!appointment) {
@@ -43,27 +42,27 @@ export class AppointmentController {
       success: true,
       data: { appointment }
     });
-  });
+  };
 
-  getMyAppointments = asyncHandler(async (req: AuthRequest, res: Response) => {
+  getMyAppointments = async (req: AuthRequest, res: Response) => {
     const appointments = await this.appointmentService.getAppointmentsByUser(req.user.id);
     
     res.json({
       success: true,
       data: { appointments }
     });
-  });
+  };
 
-  getDoctorAppointments = asyncHandler(async (req: Request, res: Response) => {
+  getDoctorAppointments = async (req: Request, res: Response) => {
     const appointments = await this.appointmentService.getAppointmentsByDoctor(req.params.doctorId);
     
     res.json({
       success: true,
       data: { appointments }
     });
-  });
+  };
 
-  updateAppointmentStatus = asyncHandler(async (req: AuthRequest, res: Response) => {
+  updateAppointmentStatus = async (req: AuthRequest, res: Response) => {
     const { status } = req.validatedData || req.body;
     const appointment = await this.appointmentService.updateAppointmentStatus(req.params.id, status);
     
@@ -75,9 +74,9 @@ export class AppointmentController {
       success: true,
       data: { appointment }
     });
-  });
+  };
 
-  updateAppointment = asyncHandler(async (req: AuthRequest, res: Response) => {
+  updateAppointment = async (req: AuthRequest, res: Response) => {
     const appointment = await this.appointmentService.updateAppointment(req.params.id, req.validatedData || req.body);
     
     if (!appointment) {
@@ -88,9 +87,9 @@ export class AppointmentController {
       success: true,
       data: { appointment }
     });
-  });
+  };
 
-  deleteAppointment = asyncHandler(async (req: Request, res: Response) => {
+  deleteAppointment = async (req: Request, res: Response) => {
     const deleted = await this.appointmentService.deleteAppointment(req.params.id);
     
     if (!deleted) {
@@ -101,9 +100,9 @@ export class AppointmentController {
       success: true,
       message: 'Appointment deleted successfully'
     });
-  });
+  };
 
-  getAppointmentsByStatus = asyncHandler(async (req: Request, res: Response) => {
+  getAppointmentsByStatus = async (req: Request, res: Response) => {
     const { status } = req.params;
     const appointments = await this.appointmentService.getAppointmentsByStatus(status as AppointmentStatus);
     
@@ -111,9 +110,9 @@ export class AppointmentController {
       success: true,
       data: { appointments }
     });
-  });
+  };
 
-  getAppointmentsByDateRange = asyncHandler(async (req: Request, res: Response) => {
+  getAppointmentsByDateRange = async (req: Request, res: Response) => {
     const { startDate, endDate } = req.query;
     
     if (!startDate || !endDate) {
@@ -129,7 +128,7 @@ export class AppointmentController {
       success: true,
       data: { appointments }
     });
-  });
+  };
 }
 
 // Note: Validation is now handled by Yup schemas in the routes 

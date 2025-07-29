@@ -2,12 +2,11 @@ import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import { AppDataSource } from '../config/database';
 import { User } from '../entities/User';
+import { IUser } from '../interfaces/IUser';
 
-interface AuthRequest extends Request {
-  user?: User;
-}
 
-export const auth = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
+
+export const auth = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const token = req.header('Authorization')?.replace('Bearer ', '');
 
@@ -16,24 +15,24 @@ export const auth = async (req: AuthRequest, res: Response, next: NextFunction):
       return;
     }
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback_secret') as any;
+    const decoded = jwt.verify(token, process.env.JWT_SECRET as string) as IUser;
     const userRepository = AppDataSource.getRepository(User);
     const user = await userRepository.findOne({ where: { id: decoded.id } });
 
     if (!user) {
-      res.status(401).json({ message: 'Invalid token.' });
+      res.status(401).json({ message: "Invalid token." });
       return;
     }
 
     req.user = user;
     next();
   } catch (error) {
-    res.status(401).json({ message: 'Invalid token.' });
+    res.status(401).json({ message: "Invalid token." });
   }
 };
 
 export const checkRole = (roles: string[]) => {
-  return (req: AuthRequest, res: Response, next: NextFunction): void => {
+  return (req: Request, res: Response, next: NextFunction): void => {
     if (!req.user) {
       res.status(401).json({ message: 'Access denied. User not authenticated.' });
       return;

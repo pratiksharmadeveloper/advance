@@ -1,11 +1,13 @@
 import { AppDataSource } from '../config/database';
-import { User, UserRole } from '../entities/User';
+import { User } from '../entities/User';
 import { Doctor } from '../entities/Doctor';
 import { Patient } from '../entities/Patient';
+import { IUserService, IUser } from '../interfaces/IUser';
+import { UserRole } from '../interfaces/UserRole';
 import jwt from 'jsonwebtoken';
 import * as bcrypt from 'bcryptjs';
 
-export class UserService {
+export class UserService implements IUserService {
   private userRepository = AppDataSource.getRepository(User);
   private doctorRepository = AppDataSource.getRepository(Doctor);
   private patientRepository = AppDataSource.getRepository(Patient);

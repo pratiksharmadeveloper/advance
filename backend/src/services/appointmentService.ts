@@ -1,10 +1,12 @@
 import { AppDataSource } from '../config/database';
-import { Appointment, AppointmentStatus, AppointmentType } from '../entities/Appointment';
+import { Appointment } from '../entities/Appointment';
 import { User } from '../entities/User';
 import { Doctor } from '../entities/Doctor';
 import { Patient } from '../entities/Patient';
+import { IAppointmentService, IAppointment } from '../interfaces/IAppointment';
+import { AppointmentStatus, AppointmentType } from '../interfaces/AppointmentStatus';
 
-export class AppointmentService {
+export class AppointmentService implements IAppointmentService {
   private appointmentRepository = AppDataSource.getRepository(Appointment);
   private userRepository = AppDataSource.getRepository(User);
   private doctorRepository = AppDataSource.getRepository(Doctor);

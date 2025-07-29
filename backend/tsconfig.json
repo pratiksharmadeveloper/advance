@@ -21,9 +21,16 @@
     "noImplicitReturns": false,
     "noFallthroughCasesInSwitch": true,
     "moduleResolution": "node",
-    "baseUrl": "./",
+    "baseUrl": "./src",
     "paths": {
-      "@/*": ["src/*"]
+      "@/entities/*": ["entities/*"],
+      "@/controllers/*": ["controllers/*"],
+      "@/services/*": ["services/*"],
+      "@/middleware/*": ["middleware/*"],
+      "@/routes/*": ["routes/*"],
+      "@/validations/*": ["validations/*"],
+      "@/interfaces/*": ["interfaces/*"],
+      "@/config/*": ["config/*"]
     },
     "allowSyntheticDefaultImports": true,
     "experimentalDecorators": true,
