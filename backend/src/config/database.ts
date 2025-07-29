@@ -1,12 +1,6 @@
 import { DataSource } from 'typeorm';
 import { config } from 'dotenv';
-import { User } from '../entities/User';
-import { Appointment } from '../entities/Appointment';
-import { Doctor } from '../entities/Doctor';
-import { Patient } from '../entities/Patient';
-import { News } from '../entities/News';
-import { Vacancy } from '../entities/Vacancy';
-import { Message } from '../entities/Message';
+import entities from '@/entities/Index';
 
 config();
 
@@ -19,7 +13,7 @@ export const AppDataSource = new DataSource({
   database: process.env.DB_DATABASE || 'hospital_db',
   synchronize: process.env.NODE_ENV === 'development',
   logging: process.env.NODE_ENV === 'development',
-  entities: [User, Appointment, Doctor, Patient, News, Vacancy, Message],
+  entities: Object.values(entities),
   migrations: ['src/migrations/*.ts'],
   subscribers: ['src/subscribers/*.ts'],
 });
