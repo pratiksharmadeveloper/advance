@@ -10,23 +10,11 @@ import {
 import { User } from './User';
 import { Doctor } from './Doctor';
 import { Patient } from './Patient';
-
-export enum AppointmentStatus {
-  PENDING = 'pending',
-  CONFIRMED = 'confirmed',
-  CANCELLED = 'cancelled',
-  COMPLETED = 'completed'
-}
-
-export enum AppointmentType {
-  CONSULTATION = 'consultation',
-  FOLLOW_UP = 'follow_up',
-  EMERGENCY = 'emergency',
-  ROUTINE = 'routine'
-}
+import { IAppointment } from '../interfaces/IAppointment';
+import { AppointmentStatus, AppointmentType } from '../interfaces/AppointmentStatus';
 
 @Entity('appointments')
-export class Appointment {
+export class Appointment implements IAppointment {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
 
@@ -80,3 +68,5 @@ export class Appointment {
   @UpdateDateColumn()
   updatedAt!: Date;
 } 
+
+export { AppointmentStatus };

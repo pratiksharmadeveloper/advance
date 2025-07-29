@@ -10,9 +10,10 @@ import {
 } from 'typeorm';
 import { Appointment } from './Appointment';
 import { User } from './User';
+import { IPatient } from '../interfaces/IPatient';
 
 @Entity('patients')
-export class Patient {
+export class Patient implements IPatient {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
 

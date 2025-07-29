@@ -8,9 +8,10 @@ import {
   JoinColumn
 } from 'typeorm';
 import { User } from './User';
+import { INews } from '../interfaces/INews';
 
 @Entity('news')
-export class News {
+export class News implements INews {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
 

@@ -8,15 +8,11 @@ import {
   JoinColumn
 } from 'typeorm';
 import { User } from './User';
-
-export enum VacancyStatus {
-  OPEN = 'open',
-  CLOSED = 'closed',
-  FILLED = 'filled'
-}
+import { IVacancy } from '../interfaces/IVacancy';
+import { VacancyStatus } from '../interfaces/VacancyStatus';
 
 @Entity('vacancies')
-export class Vacancy {
+export class Vacancy implements IVacancy {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
 

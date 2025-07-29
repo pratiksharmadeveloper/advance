@@ -8,9 +8,10 @@ import {
   JoinColumn
 } from 'typeorm';
 import { User } from './User';
+import { IMessage } from '../interfaces/IMessage';
 
 @Entity('messages')
-export class Message {
+export class Message implements IMessage {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
 

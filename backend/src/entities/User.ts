@@ -12,15 +12,11 @@ import { IsEmail, MinLength } from 'class-validator';
 import * as bcrypt from 'bcryptjs';
 import { Appointment } from './Appointment';
 import { Message } from './Message';
-
-export enum UserRole {
-  ADMIN = 'admin',
-  DOCTOR = 'doctor',
-  PATIENT = 'patient'
-}
+import { IUser } from '../interfaces/IUser';
+import { UserRole } from '../interfaces/UserRole';
 
 @Entity('users')
-export class User {
+export class User implements IUser {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
