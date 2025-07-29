@@ -1,24 +1,19 @@
 import { Request, Response } from 'express';
 import { AppointmentService } from '../services/appointmentService';
 import { asyncHandler } from '../middleware/errorHandler';
-import { body, validationResult } from 'express-validator';
 import { AppointmentStatus, AppointmentType } from '../entities/Appointment';
 
 interface AuthRequest extends Request {
   user?: any;
+  validatedData?: any;
 }
 
 export class AppointmentController {
   private appointmentService = new AppointmentService();
 
   createAppointment = asyncHandler(async (req: AuthRequest, res: Response) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
-    }
-
     const appointment = await this.appointmentService.createAppointment({
-      ...req.body,
+      ...(req.validatedData || req.body),
       userId: req.user.id
     });
 
@@ -68,13 +63,8 @@ export class AppointmentController {
     });
   });
 
-  updateAppointmentStatus = asyncHandler(async (req: Request, res: Response) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
-    }
-
-    const { status } = req.body;
+  updateAppointmentStatus = asyncHandler(async (req: AuthRequest, res: Response) => {
+    const { status } = req.validatedData || req.body;
     const appointment = await this.appointmentService.updateAppointmentStatus(req.params.id, status);
     
     if (!appointment) {
@@ -87,13 +77,8 @@ export class AppointmentController {
     });
   });
 
-  updateAppointment = asyncHandler(async (req: Request, res: Response) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
-    }
-
-    const appointment = await this.appointmentService.updateAppointment(req.params.id, req.body);
+  updateAppointment = asyncHandler(async (req: AuthRequest, res: Response) => {
+    const appointment = await this.appointmentService.updateAppointment(req.params.id, req.validatedData || req.body);
     
     if (!appointment) {
       return res.status(404).json({ message: 'Appointment not found' });
@@ -147,14 +132,4 @@ export class AppointmentController {
   });
 }
 
-// Validation middleware
-export const validateCreateAppointment = [
-  body('appointmentDate').isISO8601().withMessage('Valid appointment date is required'),
-  body('type').isIn(Object.values(AppointmentType)).withMessage('Valid appointment type is required'),
-  body('doctorId').isUUID().withMessage('Valid doctor ID is required'),
-  body('patientId').isUUID().withMessage('Valid patient ID is required')
-];
-
-export const validateUpdateAppointmentStatus = [
-  body('status').isIn(Object.values(AppointmentStatus)).withMessage('Valid status is required')
-]; 
+// Note: Validation is now handled by Yup schemas in the routes 

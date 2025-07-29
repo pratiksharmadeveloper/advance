@@ -1,46 +1,17 @@
 import { Request, Response } from 'express';
 import { UserService } from '../services/userService';
 import { asyncHandler } from '../middleware/errorHandler';
-import { body, validationResult } from 'express-validator';
+import { registerSchema } from '@/validations/schemas';
 
-interface AuthRequest extends Request {
-  user?: any;
-}
 
 export class UserController {
   private userService = new UserService();
 
   register = asyncHandler(async (req: Request, res: Response) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
-    }
 
-    const { user, token } = await this.userService.register(req.body);
-    
-    res.status(201).json({
-      success: true,
-      data: {
-        user: {
-          id: user.id,
-          firstName: user.firstName,
-          lastName: user.lastName,
-          email: user.email,
-          role: user.role,
-          phoneNumber: user.phoneNumber,
-          address: user.address
-        },
-        token
-      }
-    });
   });
 
   login = asyncHandler(async (req: Request, res: Response) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
-    }
-
     const { email, password } = req.body;
     const { user, token } = await this.userService.login(email, password);
     
@@ -86,12 +57,7 @@ export class UserController {
   });
 
   updateProfile = asyncHandler(async (req: AuthRequest, res: Response) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
-    }
-
-    const updatedUser = await this.userService.updateUser(req.user.id, req.body);
+    const updatedUser = await this.userService.updateUser(req.user.id, req.validatedData || req.body);
     
     if (!updatedUser) {
       return res.status(404).json({ message: 'User not found' });
@@ -150,15 +116,4 @@ export class UserController {
   });
 }
 
-// Validation middleware
-export const validateRegister = [
-  body('firstName').notEmpty().withMessage('First name is required'),
-  body('lastName').notEmpty().withMessage('Last name is required'),
-  body('email').isEmail().withMessage('Valid email is required'),
-  body('password').isLength({ min: 6 }).withMessage('Password must be at least 6 characters')
-];
-
-export const validateLogin = [
-  body('email').isEmail().withMessage('Valid email is required'),
-  body('password').notEmpty().withMessage('Password is required')
-]; 
+// Note: Validation is now handled by Yup schemas in the routes 

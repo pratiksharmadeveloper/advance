@@ -84,7 +84,4 @@ export class User {
     return bcrypt.compare(password, this.password);
   }
 
-  get fullName(): string {
-    return `${this.firstName} ${this.lastName}`;
-  }
 } 
