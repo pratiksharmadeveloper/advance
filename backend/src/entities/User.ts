@@ -74,12 +74,6 @@ export class User implements IUser {
   @OneToMany(() => Appointment, appointment => appointment.user)
   appointments: Appointment[];
 
-  @OneToMany(() => Message, message => message.sender)
-  sentMessages: Message[];
-
-  @OneToMany(() => Message, message => message.receiver)
-  receivedMessages: Message[];
-
   @BeforeInsert()
   @BeforeUpdate()
   async hashPassword() {

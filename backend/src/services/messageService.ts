@@ -45,7 +45,7 @@ export class MessageService implements IMessageService {
 
   async getUnreadMessages(userId: string): Promise<IMessage[]> {
     return await this.messageRepository.find({
-      where: { sender: { id: userId }, isRead: false },
+      where: { isRead: false },
       relations: ['sender'],
     });
   }

@@ -1,8 +1,8 @@
 
 import express from 'express';
 import { MessageController } from '../controllers/messageController';
-import { adminAuth } from '@/middleware/adminAuth';
-import { UploadMiddleware } from '@/middleware/upload';
+import { adminAuth } from '../middleware/adminAuth';
+import { UploadMiddleware } from '../middleware/upload';
 
 const router = express.Router();
 const messageController = new MessageController();

@@ -27,9 +27,9 @@ export class Message implements IMessage {
   @Column({ nullable: true })
   subject: string;
 
-  @ManyToOne(() => User, user => user.sentMessages)
-  @JoinColumn()
-  sender!: User;
+  // @ManyToOne(() => User, user => user.sentMessages)
+  // @JoinColumn()
+  // sender!: User;
 
   @Column({nullable: true})
   attachment: string;

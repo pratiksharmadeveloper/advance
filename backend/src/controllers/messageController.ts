@@ -77,14 +77,6 @@ export class MessageController {
         });
       }
 
-      // Restrict to sender, receiver, or admin (assuming receiverId is set via middleware)
-      if (req.user?.role !== UserRole.ADMIN && req.user?.id !== message.sender.id) {
-        return res.status(403).json({
-          status: false,
-          message: 'Access denied. You can only view your own messages.',
-        });
-      }
-
       return res.status(200).json({
         status: true,
         message: 'Message retrieved successfully',
@@ -111,12 +103,6 @@ export class MessageController {
         });
       }
 
-      if (req.user?.role !== UserRole.ADMIN && req.user?.id !== message.sender.id) {
-        return res.status(403).json({
-          status: false,
-          message: 'Access denied. You can only delete your own messages.',
-        });
-      }
 
       const success = await this.messageService.deleteMessage(id);
 
@@ -150,14 +136,6 @@ export class MessageController {
         return res.status(404).json({
           status: false,
           message: 'Message not found.',
-        });
-      }
-
-      // Restrict to receiver or admin (assuming receiverId is set via middleware)
-      if (req.user?.role !== UserRole.ADMIN && req.user?.id !== message.sender.id) {
-        return res.status(403).json({
-          status: false,
-          message: 'Access denied. You can only mark your received messages as read.',
         });
       }
 

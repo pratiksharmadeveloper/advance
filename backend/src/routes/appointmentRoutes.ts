@@ -7,7 +7,7 @@ import {
   updateAppointmentStatusSchema,
   dateRangeSchema 
 } from '../validations/schemas';
-import { adminAuth } from '@/middleware/adminAuth';
+import { adminAuth } from '../middleware/adminAuth';
 
 const router = Router();
 const appointmentController = new AppointmentController();

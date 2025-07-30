@@ -7,7 +7,7 @@ import {
 } from "../interfaces/AppointmentStatus";
 import { UserRole } from "../interfaces/UserRole";
 import * as Yup from "yup";
-import { AppDataSource } from "@/config/database";
+import { AppDataSource } from "../config/database";
 import { Appointment } from "../entities";
 
 // Validation schema for creating/updating appointments
@@ -499,5 +499,5 @@ export class AppointmentController {
       });
     }
   }
-  
+
 }

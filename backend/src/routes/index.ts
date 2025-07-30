@@ -1,8 +1,6 @@
 import { Router } from 'express';
 import userRoutes from './userRoutes';
 import appointmentRoutes from './appointmentRoutes';
-import doctorRoutes from './doctorRoutes';
-import patientRoutes from './patientRoutes';
 import newsRoutes from './newsRoutes';
 import vacancyRoutes from './vacancyRoutes';
 import messageRoutes from './messageRoutes';
@@ -30,8 +28,6 @@ router.get('/info', (req, res) => {
       auth: '/auth', 
       users: '/users',
       appointments: '/appointments',
-      doctors: '/doctors',
-      patients: '/patients',
       news: '/news',
       vacancies: '/vacancies',
       messages: '/messages',
@@ -45,8 +41,6 @@ router.get('/info', (req, res) => {
 router.use('/auth', userRoutes);
 router.use('/users', userRoutes);
 router.use('/appointments', appointmentRoutes);
-router.use('/doctors', doctorRoutes);
-router.use('/patients', patientRoutes);
 router.use('/news', newsRoutes);
 router.use('/vacancies', vacancyRoutes);
 router.use('/messages', messageRoutes);

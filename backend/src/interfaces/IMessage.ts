@@ -5,7 +5,6 @@ export interface IMessage {
   content: string;
   isRead: boolean;
   subject?: string;
-  sender: IUser;
   emailOrPhone?: string;
   attachment?: string;
   createdAt: Date;
