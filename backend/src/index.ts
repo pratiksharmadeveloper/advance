@@ -1,3 +1,4 @@
+import 'reflect-metadata';
 import express from 'express';
 import { config } from 'dotenv';
 import { initializeDatabase } from './config/database';
