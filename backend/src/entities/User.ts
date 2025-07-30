@@ -34,24 +34,36 @@ export class User implements IUser {
   @MinLength(6)
   password: string;
 
+  @Column({ type: 'date', nullable: true })
+  dateOfBirth: Date;
+
+  @Column({ nullable: true })
+  gender: string;
+
+  @Column({ nullable: true })
+  emergencyContact: string;
+
+  @Column({ nullable: true })
+  emergencyPhone: string;
+
+  @Column({ type: 'text', nullable: true })
+  address: string;
+
+  @Column({ nullable: true })
+  profileImage: string;
+
+  @Column({ nullable: true })
+  phoneNumber: string;
+
   @Column({
     type: 'enum',
     enum: UserRole,
-    default: UserRole.PATIENT
+    default: UserRole.PATIENT,
   })
   role: UserRole;
 
   @Column({ default: true })
   isActive: boolean;
-
-  @Column({ nullable: true })
-  phoneNumber: string;
-
-  @Column({ nullable: true })
-  address: string;
-
-  @Column({ nullable: true })
-  profileImage: string;
 
   @CreateDateColumn()
   createdAt: Date;

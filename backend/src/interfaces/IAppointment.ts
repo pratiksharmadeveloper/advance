@@ -1,7 +1,5 @@
 import { AppointmentStatus, AppointmentType } from './AppointmentStatus';
 import { IUser } from './IUser';
-import { IDoctor } from './IDoctor';
-import { IPatient } from './IPatient';
 
 export interface IAppointment {
   id: string;
@@ -12,10 +10,13 @@ export interface IAppointment {
   diagnosis?: string;
   prescription?: string;
   notes?: string;
+  departmentId?: number;
   fee?: number;
+  uploadedReport?: string; // uploaded file (pdf or image)
+  promocode?: string; // optional field for applying a discount
+  paymentStatus?: 'paid' | 'unpaid'; // to track payment status
   user: IUser;
-  doctor: IDoctor;
-  patient: IPatient;
+  doctor?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -23,7 +24,7 @@ export interface IAppointment {
 export interface IAppointmentService {
   createAppointment(appointmentData: Partial<IAppointment>): Promise<IAppointment>;
   getAppointmentById(id: string): Promise<IAppointment | null>;
-  getAllAppointments(): Promise<IAppointment[]>;
+  // getAllAppointments(): Promise<IAppointment[]>;
   getAppointmentsByUser(userId: string): Promise<IAppointment[]>;
   getAppointmentsByDoctor(doctorId: string): Promise<IAppointment[]>;
   updateAppointmentStatus(id: string, status: AppointmentStatus): Promise<IAppointment | null>;

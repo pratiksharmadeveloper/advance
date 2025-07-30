@@ -1,7 +1,6 @@
 import { AppDataSource } from '../config/database';
 import { User } from '../entities/User';
 import { Doctor } from '../entities/Doctor';
-import { Patient } from '../entities/Patient';
 import { IUserService, IUser } from '../interfaces/IUser';
 import { UserRole } from '../interfaces/UserRole';
 import jwt from 'jsonwebtoken';
@@ -10,7 +9,7 @@ import * as bcrypt from 'bcryptjs';
 export class UserService implements IUserService {
   private userRepository = AppDataSource.getRepository(User);
   private doctorRepository = AppDataSource.getRepository(Doctor);
-  private patientRepository = AppDataSource.getRepository(Patient);
+  // private patientRepository = AppDataSource.getRepository(Patient);
 
   async register(userData: IUser): Promise<{ user: User; token: string }> {
     const existingUser = await this.userRepository.findOne({
@@ -22,7 +21,17 @@ export class UserService implements IUserService {
     }
 
     const user = this.userRepository.create({
-      ...userData,
+      firstName: userData.firstName,
+      lastName: userData.lastName,
+      email: userData.email,
+      password: userData.password,
+      isActive: userData.isActive ?? true,
+      dateOfBirth: userData.dateOfBirth,
+      gender: userData.gender,
+      emergencyContact: userData.emergencyContact,
+      emergencyPhone: userData.emergencyPhone,
+      phoneNumber: userData.phoneNumber,
+      address: userData.address,
       role: userData.role || UserRole.PATIENT,
     });
 

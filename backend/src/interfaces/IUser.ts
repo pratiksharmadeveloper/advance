@@ -20,8 +20,6 @@ export interface IUser {
   createdAt: Date;
   updatedAt: Date;
   appointments?: IAppointment[];
-  sentMessages?: IMessage[];
-  receivedMessages?: IMessage[];
 }
 export interface IUserService {
   register(userData: Partial<IUser>): Promise<{ user: IUser; token: string }>;

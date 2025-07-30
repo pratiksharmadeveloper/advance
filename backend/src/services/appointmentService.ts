@@ -1,114 +1,223 @@
+import { Repository } from 'typeorm';
 import { AppDataSource } from '../config/database';
 import { Appointment } from '../entities/Appointment';
 import { User } from '../entities/User';
 import { Doctor } from '../entities/Doctor';
-import { Patient } from '../entities/Patient';
-import { IAppointmentService, IAppointment } from '../interfaces/IAppointment';
+import { IAppointment, IAppointmentService } from '../interfaces/IAppointment';
 import { AppointmentStatus, AppointmentType } from '../interfaces/AppointmentStatus';
+import { validateOrReject } from 'class-validator';
 
 export class AppointmentService implements IAppointmentService {
-  private appointmentRepository = AppDataSource.getRepository(Appointment);
-  private userRepository = AppDataSource.getRepository(User);
-  private doctorRepository = AppDataSource.getRepository(Doctor);
-  private patientRepository = AppDataSource.getRepository(Patient);
+  private appointmentRepository: Repository<Appointment> = AppDataSource.getRepository(Appointment);
+  private userRepository: Repository<User> = AppDataSource.getRepository(User);
+  private doctorRepository: Repository<Doctor> = AppDataSource.getRepository(Doctor);
 
-  async createAppointment(appointmentData: {
-    appointmentDate: Date;
-    type: AppointmentType;
-    symptoms?: string;
-    userId: string;
-    doctorId: string;
-    patientId: string;
-    notes?: string;
-    fee?: number;
-  }): Promise<Appointment> {
-    const user = await this.userRepository.findOne({ where: { id: appointmentData.userId } });
-    const doctor = await this.doctorRepository.findOne({ where: { id: appointmentData.doctorId } });
-    const patient = await this.patientRepository.findOne({ where: { id: appointmentData.patientId } });
+  async createAppointment(appointmentData: Partial<IAppointment>): Promise<IAppointment> {
+    const { user, doctor: doctorId, appointmentDate, type, symptoms, notes, fee, promocode, paymentStatus } = appointmentData;
 
-    if (!user || !doctor || !patient) {
-      throw new Error('User, doctor, or patient not found');
+    if (!user || !doctorId) {
+      throw new Error('User ID and Doctor are required');
     }
 
+
     const appointment = this.appointmentRepository.create({
-      ...appointmentData,
+      appointmentDate,
+      type: type || AppointmentType.CONSULTATION,
+      symptoms,
+      notes,
+      fee,
+      promocode,
+      paymentStatus: paymentStatus as 'paid' | 'unpaid',
       user,
-      doctor,
-      patient,
-      status: AppointmentStatus.PENDING
+      doctor: doctorId,
+      status: AppointmentStatus.PENDING,
     });
 
+    await validateOrReject(appointment); // Validate using class-validator
     return this.appointmentRepository.save(appointment);
   }
 
-  async getAllAppointments(): Promise<Appointment[]> {
-    return this.appointmentRepository.find({
-      relations: ['user', 'doctor', 'patient', 'doctor.user', 'patient.user']
-    });
-  }
 
-  async getAppointmentById(id: string): Promise<Appointment | null> {
-    return this.appointmentRepository.findOne({
+  async getAppointmentById(id: string): Promise<IAppointment | null> {
+    const appointment = await this.appointmentRepository.findOne({
       where: { id },
-      relations: ['user', 'doctor', 'patient', 'doctor.user', 'patient.user']
+      relations: ['user'],
+      select: {
+        id: true,
+        appointmentDate: true,
+        status: true,
+        type: true,
+        symptoms: true,
+        diagnosis: true,
+        prescription: true,
+        notes: true,
+        fee: true,
+        uploadedReport: true,
+        promocode: true,
+        paymentStatus: true,
+        doctor: true,
+        createdAt: true,
+        updatedAt: true,
+        user: { id: true, firstName: true, lastName: true, email: true },
+      },
     });
+    if (!appointment) throw new Error('Appointment not found');
+    return appointment;
   }
 
-  async getAppointmentsByUser(userId: string): Promise<Appointment[]> {
+  async getAppointmentsByUser(userId: string): Promise<IAppointment[]> {
     return this.appointmentRepository.find({
       where: { user: { id: userId } },
-      relations: ['doctor', 'patient', 'doctor.user', 'patient.user']
+      relations: ['user'],
+      select: {
+        id: true,
+        appointmentDate: true,
+        status: true,
+        type: true,
+        symptoms: true,
+        diagnosis: true,
+        prescription: true,
+        notes: true,
+        fee: true,
+        uploadedReport: true,
+        promocode: true,
+        paymentStatus: true,
+        doctor: true,
+        createdAt: true,
+        updatedAt: true,
+        user: { id: true, firstName: true, lastName: true, email: true },
+      },
     });
   }
 
-  async getAppointmentsByDoctor(doctorId: string): Promise<Appointment[]> {
+  async getAppointmentsByDoctor(doctorId: string): Promise<IAppointment[]> {
     return this.appointmentRepository.find({
-      where: { doctor: { id: doctorId } },
-      relations: ['user', 'patient', 'patient.user']
+      where: { doctor: doctorId },
+      relations: ['user'],
+      select: {
+        id: true,
+        appointmentDate: true,
+        status: true,
+        type: true,
+        symptoms: true,
+        diagnosis: true,
+        prescription: true,
+        notes: true,
+        fee: true,
+        uploadedReport: true,
+        promocode: true,
+        paymentStatus: true,
+        doctor: true,
+        createdAt: true,
+        updatedAt: true,
+        user: { id: true, firstName: true, lastName: true, email: true },
+      },
     });
   }
 
-  async updateAppointmentStatus(id: string, status: AppointmentStatus): Promise<Appointment | null> {
+  async updateAppointmentStatus(id: string, status: AppointmentStatus): Promise<IAppointment | null> {
     const appointment = await this.appointmentRepository.findOne({ where: { id } });
     if (!appointment) {
-      return null;
+      throw new Error('Appointment not found');
     }
 
     appointment.status = status;
+    await validateOrReject(appointment);
     return this.appointmentRepository.save(appointment);
   }
 
-  async updateAppointment(id: string, updateData: Partial<Appointment>): Promise<Appointment | null> {
-    const appointment = await this.appointmentRepository.findOne({ where: { id } });
+  async updateAppointment(id: string, updateData: Partial<IAppointment>): Promise<IAppointment | null> {
+    const appointment = await this.appointmentRepository.findOne({ where: { id }, relations: ['user'] });
     if (!appointment) {
-      return null;
+      throw new Error('Appointment not found');
     }
 
-    Object.assign(appointment, updateData);
+    if (updateData.user?.id && updateData.user.id !== appointment.user.id) {
+      const user = await this.userRepository.findOne({ where: { id: updateData.user.id } });
+      if (!user) throw new Error('Patient not found');
+      appointment.user = user;
+    }
+
+    if (updateData.doctor) {
+      // const doctor = await this.doctorRepository.findOne({ where: { id: updateData.doctor } });
+      // if (!doctor) throw new Error('Doctor not found');
+      appointment.doctor = updateData.doctor;
+    }
+
+    Object.assign(appointment, {
+      appointmentDate: updateData.appointmentDate,
+      type: updateData.type,
+      symptoms: updateData.symptoms,
+      diagnosis: updateData.diagnosis,
+      prescription: updateData.prescription,
+      notes: updateData.notes,
+      fee: updateData.fee,
+      uploadedReport: updateData.uploadedReport,
+      promocode: updateData.promocode,
+      paymentStatus: updateData.paymentStatus,
+    });
+
+    await validateOrReject(appointment);
     return this.appointmentRepository.save(appointment);
   }
 
   async deleteAppointment(id: string): Promise<boolean> {
     const result = await this.appointmentRepository.delete(id);
-    return result.affected ? result.affected > 0 : false;
+    if (!result.affected) throw new Error('Appointment not found');
+    return result.affected > 0;
   }
 
-  async getAppointmentsByStatus(status: AppointmentStatus): Promise<Appointment[]> {
+  async getAppointmentsByStatus(status: AppointmentStatus): Promise<IAppointment[]> {
     return this.appointmentRepository.find({
       where: { status },
-      relations: ['user', 'doctor', 'patient', 'doctor.user', 'patient.user']
+      relations: ['user'],
+      select: {
+        id: true,
+        appointmentDate: true,
+        status: true,
+        type: true,
+        symptoms: true,
+        diagnosis: true,
+        prescription: true,
+        notes: true,
+        fee: true,
+        uploadedReport: true,
+        promocode: true,
+        paymentStatus: true,
+        doctor: true,
+        createdAt: true,
+        updatedAt: true,
+        user: { id: true, firstName: true, lastName: true, email: true },
+      },
     });
   }
 
-  async getAppointmentsByDateRange(startDate: Date, endDate: Date): Promise<Appointment[]> {
+  async getAppointmentsByDateRange(startDate: Date, endDate: Date): Promise<IAppointment[]> {
     return this.appointmentRepository
       .createQueryBuilder('appointment')
       .leftJoinAndSelect('appointment.user', 'user')
-      .leftJoinAndSelect('appointment.doctor', 'doctor')
-      .leftJoinAndSelect('appointment.patient', 'patient')
-      .leftJoinAndSelect('doctor.user', 'doctorUser')
-      .leftJoinAndSelect('patient.user', 'patientUser')
       .where('appointment.appointmentDate BETWEEN :startDate AND :endDate', { startDate, endDate })
+      .select([
+        'appointment.id',
+        'appointment.appointmentDate',
+        'appointment.status',
+        'appointment.type',
+        'appointment.symptoms',
+        'appointment.diagnosis',
+        'appointment.prescription',
+        'appointment.notes',
+        'appointment.fee',
+        'appointment.uploadedReport',
+        'appointment.promocode',
+        'appointment.paymentStatus',
+        'appointment.doctor',
+        'appointment.createdAt',
+        'appointment.updatedAt',
+        'user.id',
+        'user.firstName',
+        'user.lastName',
+        'user.email',
+      ])
       .getMany();
   }
-} 
+}
