@@ -7,6 +7,7 @@ import newsRoutes from './newsRoutes';
 import vacancyRoutes from './vacancyRoutes';
 import messageRoutes from './messageRoutes';
 import departmentRoutes from './departmentRoutes';
+import adminRoutes from './adminRoutes';
 
 const router = Router();
 
@@ -34,7 +35,8 @@ router.get('/info', (req, res) => {
       news: '/news',
       vacancies: '/vacancies',
       messages: '/messages',
-      departments: '/departments'
+      departments: '/departments',
+      admin: '/admin'
     }
   });
 });
@@ -49,5 +51,6 @@ router.use('/news', newsRoutes);
 router.use('/vacancies', vacancyRoutes);
 router.use('/messages', messageRoutes);
 router.use('/departments', departmentRoutes);
+router.use('/admin', adminRoutes);
 
 export default router; 

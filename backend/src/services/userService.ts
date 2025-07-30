@@ -88,6 +88,13 @@ export class UserService implements IUserService {
     return result.affected ? result.affected > 0 : false;
   }
 
+  async getUsersByRole(role: UserRole): Promise<User[]> {
+    return this.userRepository.find({
+      where: { role },
+      select: ['id', 'firstName', 'lastName', 'email', 'role', 'isActive', 'phoneNumber', 'address', 'createdAt', 'updatedAt']
+    });
+  }
+
   private generateToken(user: User): string {
     return jwt.sign(
       { id: user.id, email: user.email, role: user.role },

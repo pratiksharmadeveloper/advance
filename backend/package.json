@@ -7,7 +7,10 @@
     "dev": "nodemon --require tsconfig-paths/register src/index.ts",
     "build": "tsc",
     "start": "node -r tsconfig-paths/register dist/index.js",
-    "typeorm": "typeorm-ts-node-commonjs"
+    "typeorm": "typeorm-ts-node-commonjs",
+    "seed": "ts-node --require tsconfig-paths/register scripts/seed.ts",
+    "seed:admin": "ts-node --require tsconfig-paths/register scripts/seed.ts admin",
+    "seed:all": "ts-node --require tsconfig-paths/register scripts/seed.ts all"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

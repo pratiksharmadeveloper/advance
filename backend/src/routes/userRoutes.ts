@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { UserController } from '../controllers/userController';
-import { auth, isAdmin } from '../middleware/auth';
-import { registerSchema, loginSchema, updateProfileSchema } from '../validations/schemas';
+import { auth } from '../middleware/auth';
+import { UploadMiddleware } from '../middleware/upload';
 
 const router = Router();
 const userController = new UserController();
@@ -11,12 +11,15 @@ router.post('/register', userController.register);
 router.post('/login', userController.login);
 
 // Protected routes
-router.get('/profile', auth, userController.getProfile);
-router.put('/profile', auth, userController.updateProfile);
+router.use(auth);
 
-// Admin only routes
-router.get('/', auth, isAdmin, userController.getAllUsers);
-router.get('/:id', auth, isAdmin, userController.getUserById);
-router.delete('/:id', auth, isAdmin, userController.deleteUser);
+// User profile routes with avatar upload
+router.get('/profile', userController.getProfile);
+router.put('/profile', UploadMiddleware.avatarUpload('profileImage'), userController.updateProfile);
+
+// Admin routes (if needed)
+router.get('/', userController.getAllUsers);
+router.get('/:id', userController.getUserById);
+router.delete('/:id', userController.deleteUser);
 
 export default router; 

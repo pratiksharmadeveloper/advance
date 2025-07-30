@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import { DepartmentService } from "../services/departmentService";
 import { createDepartmentSchema, updateDepartmentSchema } from "../validations/schemas";
 import { IDepartment } from "../interfaces";
+import { UploadMiddleware } from "../middleware/upload";
 
 export class DepartmentController {
   private departmentService = new DepartmentService();
@@ -21,7 +22,7 @@ export class DepartmentController {
 
       const departmentData: Partial<IDepartment> = {
         ...req.body,
-        imageUrl: req.file?.filename ? `/uploads/departments/${req.file.filename}` : undefined
+        imageUrl: req.file?.filename ? UploadMiddleware.getFileUrl(req.file.filename, 'departments') : undefined
       };
 
       const department = await this.departmentService.createDepartment(departmentData);
@@ -115,7 +116,7 @@ export class DepartmentController {
 
       // Handle image upload if new file is provided
       if (req.file) {
-        updateData.imageUrl = `/uploads/departments/${req.file.filename}`;
+        updateData.imageUrl = UploadMiddleware.getFileUrl(req.file.filename, 'departments');
       }
 
       const department = await this.departmentService.updateDepartment(id, updateData);
