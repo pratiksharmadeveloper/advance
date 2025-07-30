@@ -10,9 +10,11 @@
     "typeorm": "typeorm-ts-node-commonjs",
     "seed": "ts-node --require tsconfig-paths/register scripts/seed.ts",
     "seed:admin": "ts-node --require tsconfig-paths/register scripts/seed.ts admin",
-    "seed:all": "ts-node --require tsconfig-paths/register scripts/seed.ts all"
+    "seed:all": "ts-node --require tsconfig-paths/register scripts/seed.ts all",
+    "setup:test-data": "node setup_test_data.js"
   },
   "dependencies": {
+    "axios": "^1.6.2",
     "bcryptjs": "^2.4.3",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.2",
