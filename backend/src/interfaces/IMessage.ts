@@ -6,7 +6,8 @@ export interface IMessage {
   isRead: boolean;
   subject?: string;
   sender: IUser;
-  receiver: IUser;
+  emailOrPhone?: string;
+  attachment?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -14,9 +15,6 @@ export interface IMessage {
 export interface IMessageService {
   createMessage(messageData: Partial<IMessage>): Promise<IMessage>;
   getMessageById(id: string): Promise<IMessage | null>;
-  getMessagesByUser(userId: string): Promise<IMessage[]>;
-  getMessagesBetweenUsers(userId1: string, userId2: string): Promise<IMessage[]>;
-  updateMessage(id: string, messageData: Partial<IMessage>): Promise<IMessage | null>;
   deleteMessage(id: string): Promise<boolean>;
   markAsRead(id: string): Promise<IMessage | null>;
   getUnreadMessages(userId: string): Promise<IMessage[]>;

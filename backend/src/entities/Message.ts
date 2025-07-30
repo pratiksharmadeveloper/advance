@@ -22,15 +22,17 @@ export class Message implements IMessage {
   isRead: boolean = false;
 
   @Column({ nullable: true })
+  emailOrPhone: string;
+
+  @Column({ nullable: true })
   subject: string;
 
   @ManyToOne(() => User, user => user.sentMessages)
   @JoinColumn()
   sender!: User;
 
-  @ManyToOne(() => User, user => user.receivedMessages)
-  @JoinColumn()
-  receiver!: User;
+  @Column({nullable: true})
+  attachment: string;
 
   @CreateDateColumn()
   createdAt!: Date;

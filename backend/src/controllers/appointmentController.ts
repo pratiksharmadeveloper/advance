@@ -470,4 +470,34 @@ export class AppointmentController {
       });
     }
   }
+
+  // get my appointments
+  async getMyAppointments(req: Request, res: Response) {
+    try {
+      const userId = req.user?.id;
+      if (!userId) {
+        return res.status(400).json({
+          status: false,
+          message: "User ID is required.",
+        });
+      }
+
+      const appointments = await this.appointmentService.getAppointmentsByUser(
+        userId
+      );
+
+      return res.status(200).json({
+        status: true,
+        message: "My appointments retrieved successfully",
+        data: appointments,
+      });
+    } catch (error: any) {
+      console.error("Get my appointments error:", error);
+      return res.status(500).json({
+        status: false,
+        message: "Failed to retrieve appointments. Please try again later.",
+      });
+    }
+  }
+  
 }
