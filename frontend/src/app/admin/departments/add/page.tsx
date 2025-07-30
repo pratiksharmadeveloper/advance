@@ -8,6 +8,7 @@ import Button from '@/components/ui/Button'
 import Card, { CardContent, CardHeader } from '@/components/ui/Card'
 import Badge from '@/components/ui/Badge'
 import Input from '@/components/ui/Input'
+import axiosInstance from '@/components/axiosInstance'
 
 export default function AddDepartmentPage() {
   const router = useRouter()
@@ -15,9 +16,10 @@ export default function AddDepartmentPage() {
   const [formData, setFormData] = useState({
     name: '',
     description: '',
-    image: '',
     status: 'active'
   })
+  const [selectedImage, setSelectedImage] = useState<File | null>(null)
+  const [imagePreview, setImagePreview] = useState<string>('')
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target
@@ -27,18 +29,48 @@ export default function AddDepartmentPage() {
     }))
   }
 
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      setSelectedImage(file)
+      const reader = new FileReader()
+      reader.onload = (e) => {
+        setImagePreview(e.target?.result as string)
+      }
+      reader.readAsDataURL(file)
+    }
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
     
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000))
-    
-    // Here you would typically make an API call to create the department
-    console.log('Creating department:', formData)
-    
-    setIsLoading(false)
-    router.push('/admin/departments')
+    try {
+      const formDataToSend = new FormData()
+      formDataToSend.append('name', formData.name)
+      formDataToSend.append('description', formData.description)
+      formDataToSend.append('status', formData.status)
+      
+      if (selectedImage) {
+        formDataToSend.append('image', selectedImage)
+      }
+
+      const response = await axiosInstance.post('/departments', formDataToSend, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      })
+
+      if (response.data.status) {
+        router.push('/admin/departments')
+      } else {
+        console.error('Failed to create department:', response.data.message)
+      }
+    } catch (error: any) {
+      console.error('Error creating department:', error.response?.data?.message || error.message)
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   return (
@@ -108,25 +140,22 @@ export default function AddDepartmentPage() {
               />
             </div>
 
-            {/* Image URL */}
+            {/* Image Upload */}
             <div>
               <label htmlFor="image" className="block text-sm font-medium text-gray-700 mb-2">
-                Department Image URL
+                Department Image
               </label>
-              <Input
-                id="image"
-                name="image"
-                type="url"
-                placeholder="https://example.com/department-image.jpg"
-                value={formData.image}
-                onChange={handleInputChange}
-                leftIcon={
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                  </svg>
-                }
-              />
-              <p className="text-xs text-gray-500 mt-1">Provide a URL for the department's representative image</p>
+              <div className="flex items-center space-x-4">
+                <input
+                  id="image"
+                  name="image"
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageChange}
+                  className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                />
+              </div>
+              <p className="text-xs text-gray-500 mt-1">Upload an image for the department (JPG, PNG, GIF up to 5MB)</p>
             </div>
 
             {/* Status */}
@@ -147,13 +176,13 @@ export default function AddDepartmentPage() {
             </div>
 
             {/* Image Preview */}
-            {formData.image && (
+            {imagePreview && (
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Image Preview
                 </label>
                 <div className="w-48 h-32 rounded-lg bg-cover bg-center border border-gray-200" 
-                     style={{ backgroundImage: `url(${formData.image})` }}>
+                     style={{ backgroundImage: `url(${imagePreview})` }}>
                 </div>
               </div>
             )}

@@ -8,12 +8,13 @@ import Button from '@/components/ui/Button'
 import Card, { CardContent, CardHeader } from '@/components/ui/Card'
 import Badge from '@/components/ui/Badge'
 import Input from '@/components/ui/Input'
+import axiosInstance from '@/components/axiosInstance'
 
 interface Department {
   id: string
   name: string
   description: string
-  image: string
+  imageUrl?: string
   status: 'active' | 'inactive'
   doctorCount: number
   createdAt: string
@@ -30,58 +31,34 @@ export default function EditDepartmentPage() {
   const [formData, setFormData] = useState({
     name: '',
     description: '',
-    image: '',
     status: 'active'
   })
-
-  // Mock data - in real app, this would come from API
-  const mockDepartments: Department[] = [
-    {
-      id: '1',
-      name: 'Cardiology',
-      description: 'Advanced heart care and treatment',
-      image: 'https://images.unsplash.com/photo-1559757148-5c350d0d3c56?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&h=300&q=80',
-      status: 'active',
-      doctorCount: 8,
-      createdAt: '2024-01-15'
-    },
-    {
-      id: '2',
-      name: 'Neurology',
-      description: 'Brain and nervous system care',
-      image: 'https://images.unsplash.com/photo-1559757175-0eb30cd8c063?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&h=300&q=80',
-      status: 'active',
-      doctorCount: 6,
-      createdAt: '2024-01-20'
-    },
-    {
-      id: '3',
-      name: 'Orthopedics',
-      description: 'Bone, joint, and muscle care',
-      image: 'https://images.unsplash.com/photo-1559757148-5c350d0d3c56?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&h=300&q=80',
-      status: 'active',
-      doctorCount: 5,
-      createdAt: '2024-02-01'
-    }
-  ]
+  const [selectedImage, setSelectedImage] = useState<File | null>(null)
+  const [imagePreview, setImagePreview] = useState<string>('')
 
   useEffect(() => {
-    // Simulate API call to fetch department data
+    // Fetch department data from API
     const fetchDepartment = async () => {
       setIsLoadingData(true)
-      await new Promise(resolve => setTimeout(resolve, 500))
-      
-      const foundDepartment = mockDepartments.find(dept => dept.id === departmentId)
-      if (foundDepartment) {
-        setDepartment(foundDepartment)
-        setFormData({
-          name: foundDepartment.name,
-          description: foundDepartment.description,
-          image: foundDepartment.image,
-          status: foundDepartment.status
-        })
+      try {
+        const response = await axiosInstance.get(`/departments/${departmentId}`)
+        if (response.data.status) {
+          const foundDepartment = response.data.data
+          setDepartment(foundDepartment)
+          setFormData({
+            name: foundDepartment.name,
+            description: foundDepartment.description,
+            status: foundDepartment.status
+          })
+          if (foundDepartment.imageUrl) {
+            setImagePreview(foundDepartment.imageUrl)
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching department:', error)
+      } finally {
+        setIsLoadingData(false)
       }
-      setIsLoadingData(false)
     }
 
     fetchDepartment()
@@ -95,18 +72,48 @@ export default function EditDepartmentPage() {
     }))
   }
 
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      setSelectedImage(file)
+      const reader = new FileReader()
+      reader.onload = (e) => {
+        setImagePreview(e.target?.result as string)
+      }
+      reader.readAsDataURL(file)
+    }
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
     
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000))
-    
-    // Here you would typically make an API call to update the department
-    console.log('Updating department:', { id: departmentId, ...formData })
-    
-    setIsLoading(false)
-    router.push('/admin/departments')
+    try {
+      const formDataToSend = new FormData()
+      formDataToSend.append('name', formData.name)
+      formDataToSend.append('description', formData.description)
+      formDataToSend.append('status', formData.status)
+      
+      if (selectedImage) {
+        formDataToSend.append('image', selectedImage)
+      }
+
+      const response = await axiosInstance.put(`/departments/${departmentId}`, formDataToSend, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      })
+
+      if (response.data.status) {
+        router.push('/admin/departments')
+      } else {
+        console.error('Failed to update department:', response.data.message)
+      }
+    } catch (error: any) {
+      console.error('Error updating department:', error.response?.data?.message || error.message)
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   const handleDelete = async () => {
@@ -116,14 +123,19 @@ export default function EditDepartmentPage() {
     
     setIsLoading(true)
     
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000))
-    
-    // Here you would typically make an API call to delete the department
-    console.log('Deleting department:', departmentId)
-    
-    setIsLoading(false)
-    router.push('/admin/departments')
+    try {
+      const response = await axiosInstance.delete(`/departments/${departmentId}`)
+      
+      if (response.data.status) {
+        router.push('/admin/departments')
+      } else {
+        console.error('Failed to delete department:', response.data.message)
+      }
+    } catch (error: any) {
+      console.error('Error deleting department:', error.response?.data?.message || error.message)
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   if (isLoadingData) {
@@ -185,7 +197,7 @@ export default function EditDepartmentPage() {
       <Card variant="outlined">
         <CardContent>
           <div className="flex items-center space-x-4">
-            <div className="w-16 h-16 rounded-lg bg-cover bg-center" style={{ backgroundImage: `url(${department.image})` }}></div>
+            <div className="w-16 h-16 rounded-lg bg-cover bg-center" style={{ backgroundImage: `url(${department.imageUrl || '/images/hospital-image.jpg'})` }}></div>
             <div>
               <h3 className="text-lg font-semibold text-gray-900">{department.name}</h3>
               <p className="text-gray-600">{department.description}</p>
@@ -244,25 +256,22 @@ export default function EditDepartmentPage() {
               />
             </div>
 
-            {/* Image URL */}
+            {/* Image Upload */}
             <div>
               <label htmlFor="image" className="block text-sm font-medium text-gray-700 mb-2">
-                Department Image URL
+                Department Image
               </label>
-              <Input
-                id="image"
-                name="image"
-                type="url"
-                placeholder="https://example.com/department-image.jpg"
-                value={formData.image}
-                onChange={handleInputChange}
-                leftIcon={
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                  </svg>
-                }
-              />
-              <p className="text-xs text-gray-500 mt-1">Provide a URL for the department's representative image</p>
+              <div className="flex items-center space-x-4">
+                <input
+                  id="image"
+                  name="image"
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageChange}
+                  className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                />
+              </div>
+              <p className="text-xs text-gray-500 mt-1">Upload a new image for the department (JPG, PNG, GIF up to 5MB)</p>
             </div>
 
             {/* Status */}
@@ -283,13 +292,13 @@ export default function EditDepartmentPage() {
             </div>
 
             {/* Image Preview */}
-            {formData.image && (
+            {imagePreview && (
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Image Preview
                 </label>
                 <div className="w-48 h-32 rounded-lg bg-cover bg-center border border-gray-200" 
-                     style={{ backgroundImage: `url(${formData.image})` }}>
+                     style={{ backgroundImage: `url(${imagePreview})` }}>
                 </div>
               </div>
             )}

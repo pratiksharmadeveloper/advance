@@ -1,18 +1,19 @@
 // src/app/admin/departments/page.tsx
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import Button from '@/components/ui/Button'
 import Card, { CardContent } from '@/components/ui/Card'
 import Badge from '@/components/ui/Badge'
 import Input from '@/components/ui/Input'
+import axiosInstance from '@/components/axiosInstance'
 
 interface Department {
   id: string
   name: string
   description: string
-  image: string
+  imageUrl?: string
   status: 'active' | 'inactive'
   doctorCount: number
   createdAt: string
@@ -23,62 +24,25 @@ export default function DepartmentsPage() {
   const [selectedStatus, setSelectedStatus] = useState('')
   const [selectedDepartments, setSelectedDepartments] = useState<string[]>([])
 
-  const departments: Department[] = [
-    {
-      id: '1',
-      name: 'Cardiology',
-      description: 'Advanced heart care and treatment',
-      image: 'https://images.unsplash.com/photo-1559757148-5c350d0d3c56?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&h=300&q=80',
-      status: 'active',
-      doctorCount: 8,
-      createdAt: '2024-01-15'
-    },
-    {
-      id: '2',
-      name: 'Neurology',
-      description: 'Brain and nervous system care',
-      image: 'https://images.unsplash.com/photo-1559757175-0eb30cd8c063?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&h=300&q=80',
-      status: 'active',
-      doctorCount: 6,
-      createdAt: '2024-01-20'
-    },
-    {
-      id: '3',
-      name: 'Orthopedics',
-      description: 'Bone, joint, and muscle care',
-      image: 'https://images.unsplash.com/photo-1559757148-5c350d0d3c56?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&h=300&q=80',
-      status: 'active',
-      doctorCount: 5,
-      createdAt: '2024-02-01'
-    },
-    {
-      id: '4',
-      name: 'Pediatrics',
-      description: 'Comprehensive child healthcare',
-      image: 'https://images.unsplash.com/photo-1559757175-0eb30cd8c063?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&h=300&q=80',
-      status: 'active',
-      doctorCount: 7,
-      createdAt: '2024-02-10'
-    },
-    {
-      id: '5',
-      name: 'Emergency',
-      description: '24/7 emergency medical care',
-      image: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&h=300&q=80',
-      status: 'active',
-      doctorCount: 12,
-      createdAt: '2024-02-15'
-    },
-    {
-      id: '6',
-      name: 'Radiology',
-      description: 'Advanced imaging and diagnostics',
-      image: 'https://images.unsplash.com/photo-1516549655169-df83a0774514?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&h=300&q=80',
-      status: 'inactive',
-      doctorCount: 3,
-      createdAt: '2024-03-01'
+  const [departments, setDepartments] = useState<Department[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+
+  useEffect(() => {
+    fetchDepartments()
+  }, [])
+
+  const fetchDepartments = async () => {
+    try {
+      const response = await axiosInstance.get('/departments')
+      if (response.data.status) {
+        setDepartments(response.data.data)
+      }
+    } catch (error) {
+      console.error('Error fetching departments:', error)
+    } finally {
+      setIsLoading(false)
     }
-  ]
+  }
 
   const toggleDepartment = (id: string) => {
     setSelectedDepartments(prev => 
@@ -100,6 +64,20 @@ export default function DepartmentsPage() {
     const matchesStatus = selectedStatus === '' || dept.status === selectedStatus
     return matchesSearch && matchesStatus
   })
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-64">
+        <div className="text-center">
+          <svg className="animate-spin h-8 w-8 text-blue-500 mx-auto mb-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+          </svg>
+          <p className="text-gray-600">Loading departments...</p>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-6">
@@ -222,7 +200,7 @@ export default function DepartmentsPage() {
                     />
                   </div>
                   <div className="col-span-3 flex items-center space-x-3">
-                    <div className="w-12 h-12 rounded-lg bg-cover bg-center" style={{ backgroundImage: `url(${department.image})` }}></div>
+                    <div className="w-12 h-12 rounded-lg bg-cover bg-center" style={{ backgroundImage: `url(${department.imageUrl || '/images/hospital-image.jpg'})` }}></div>
                     <div>
                       <h3 className="font-medium text-gray-900">{department.name}</h3>
                     </div>
@@ -270,7 +248,7 @@ export default function DepartmentsPage() {
                     />
                     <div className="flex-1">
                       <div className="flex items-center space-x-3 mb-2">
-                        <div className="w-12 h-12 rounded-lg bg-cover bg-center" style={{ backgroundImage: `url(${department.image})` }}></div>
+                        <div className="w-12 h-12 rounded-lg bg-cover bg-center" style={{ backgroundImage: `url(${department.imageUrl || '/images/hospital-image.jpg'})` }}></div>
                         <div className="flex-1">
                           <h3 className="font-medium text-gray-900">{department.name}</h3>
                           <p className="text-sm text-gray-600">{department.doctorCount} doctors</p>

@@ -22,6 +22,9 @@ declare global {
 // Init common middleware
 initMiddleware(app);
 
+// Serve static files for uploaded images
+app.use('/uploads', express.static('uploads'));
+
 // Routes
 app.use('/api/v1', routes);
 

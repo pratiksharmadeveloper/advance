@@ -10,4 +10,5 @@ export { IDoctor, IDoctorService } from './IDoctor';
 export { IPatient, IPatientService } from './IPatient';
 export { IMessage, IMessageService } from './IMessage';
 export { INews, INewsService } from './INews';
-export { IVacancy, IVacancyService } from './IVacancy'; 
+export { IVacancy, IVacancyService } from './IVacancy';
+export { IDepartment, IDepartmentService } from './IDepartment'; 

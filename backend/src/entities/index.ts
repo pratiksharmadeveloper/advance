@@ -5,6 +5,7 @@ import { Patient } from "./Patient";
 import { News } from "./News";
 import { Vacancy } from "./Vacancy";
 import { Message } from "./Message";
+import { Department } from "./Department";
 
-export { User, Appointment, Doctor, Patient, News, Vacancy, Message };
-export default { User, Appointment, Doctor, Patient, News, Vacancy, Message };
+export { User, Appointment, Doctor, Patient, News, Vacancy, Message, Department };
+export default { User, Appointment, Doctor, Patient, News, Vacancy, Message, Department };

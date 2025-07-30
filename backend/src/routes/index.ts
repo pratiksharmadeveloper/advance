@@ -6,6 +6,7 @@ import patientRoutes from './patientRoutes';
 import newsRoutes from './newsRoutes';
 import vacancyRoutes from './vacancyRoutes';
 import messageRoutes from './messageRoutes';
+import departmentRoutes from './departmentRoutes';
 
 const router = Router();
 
@@ -32,7 +33,8 @@ router.get('/info', (req, res) => {
       patients: '/patients',
       news: '/news',
       vacancies: '/vacancies',
-      messages: '/messages'
+      messages: '/messages',
+      departments: '/departments'
     }
   });
 });
@@ -46,5 +48,6 @@ router.use('/patients', patientRoutes);
 router.use('/news', newsRoutes);
 router.use('/vacancies', vacancyRoutes);
 router.use('/messages', messageRoutes);
+router.use('/departments', departmentRoutes);
 
 export default router; 

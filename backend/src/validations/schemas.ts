@@ -161,6 +161,19 @@ export const updateMessageSchema = yup.object({
   subject: yup.string().optional()
 });
 
+// Department validation schemas
+export const createDepartmentSchema = yup.object({
+  name: yup.string().required('Department name is required').min(2, 'Department name must be at least 2 characters').max(100, 'Department name must be less than 100 characters'),
+  description: yup.string().required('Description is required').min(10, 'Description must be at least 10 characters'),
+  status: yup.string().oneOf(['active', 'inactive'], 'Invalid status').default('active')
+});
+
+export const updateDepartmentSchema = yup.object({
+  name: yup.string().min(2, 'Department name must be at least 2 characters').max(100, 'Department name must be less than 100 characters').optional(),
+  description: yup.string().min(10, 'Description must be at least 10 characters').optional(),
+  status: yup.string().oneOf(['active', 'inactive'], 'Invalid status').optional()
+});
+
 // Query parameter schemas
 export const dateRangeSchema = yup.object({
   startDate: yup.date().required('Start date is required'),
