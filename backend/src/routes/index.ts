@@ -25,26 +25,26 @@ router.get('/info', (req, res) => {
     message: 'Hospital Management System API',
     version: '1.0.0',
     endpoints: {
-      auth: '/api/auth',
-      users: '/api/users',
-      appointments: '/api/appointments',
-      doctors: '/api/doctors',
-      patients: '/api/patients',
-      news: '/api/news',
-      vacancies: '/api/vacancies',
-      messages: '/api/messages'
+      auth: '/auth', 
+      users: '/users',
+      appointments: '/appointments',
+      doctors: '/doctors',
+      patients: '/patients',
+      news: '/news',
+      vacancies: '/vacancies',
+      messages: '/messages'
     }
   });
 });
 
 // Mount route modules
-router.use('/api/auth', userRoutes);
-router.use('/api/users', userRoutes);
-router.use('/api/appointments', appointmentRoutes);
-router.use('/api/doctors', doctorRoutes);
-router.use('/api/patients', patientRoutes);
-router.use('/api/news', newsRoutes);
-router.use('/api/vacancies', vacancyRoutes);
-router.use('/api/messages', messageRoutes);
+router.use('/auth', userRoutes);
+router.use('/users', userRoutes);
+router.use('/appointments', appointmentRoutes);
+router.use('/doctors', doctorRoutes);
+router.use('/patients', patientRoutes);
+router.use('/news', newsRoutes);
+router.use('/vacancies', vacancyRoutes);
+router.use('/messages', messageRoutes);
 
 export default router; 

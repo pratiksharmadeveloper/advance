@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useRouter } from 'next/navigation'
 import { 
   Eye, 
   EyeOff, 
@@ -18,6 +18,8 @@ import {
   CheckCircle
 } from 'lucide-react'
 import { CONTACT_INFO } from '@/lib/constants'
+import axiosInstance from '@/components/axiosInstance'
+import { toast } from 'react-toastify'
 
 interface LoginForm {
   email: string
@@ -32,7 +34,22 @@ interface OTPForm {
 
 export default function LoginPage() {
   const router = useRouter()
-  const searchParams = useSearchParams()
+  const [token, setToken] = useState<string | null>(null);
+
+  // get the token from local storage
+  useEffect(() => {
+    const token = localStorage.getItem('token')
+    if (token) {
+      setToken(token)
+    }
+  }, []);
+
+  useEffect(() => {
+    if (token) {
+      router.push('/patient/dashboard')
+    }
+  }, [token, router]);
+
   const [loginData, setLoginData] = useState<LoginForm>({
     email: '',
     password: '',
@@ -50,13 +67,6 @@ export default function LoginPage() {
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [successMessage, setSuccessMessage] = useState('')
 
-  // Check for success messages from URL params
-  useEffect(() => {
-    const message = searchParams.get('message')
-    if (message === 'registration-success') {
-      setSuccessMessage('Registration successful! Please sign in to your account.')
-    }
-  }, [searchParams])
 
   // OTP timer countdown
   useEffect(() => {
@@ -126,22 +136,19 @@ export default function LoginPage() {
     setSuccessMessage('')
     
     try {
-      // Simulate login API call
-      await new Promise(resolve => setTimeout(resolve, 2000))
-      
-      // Mock authentication logic
-      if (loginData.email === 'admin@hospital.com' && loginData.password === 'admin123') {
-        // Admin login
-        localStorage.setItem('userType', 'admin')
-        localStorage.setItem('userEmail', loginData.email)
-        router.push('/admin')
-      } else if (loginData.email && loginData.password) {
-        // Patient login
-        localStorage.setItem('userType', 'patient')
-        localStorage.setItem('userEmail', loginData.email)
-        router.push('/patient/dashboard')
+      const response = await axiosInstance.post('/auth/login', loginData)
+      if (response.data.status) {
+        localStorage.setItem('token', response.data.token)
+        localStorage.setItem('user_name', response.data.user.firstName + ' ' + response.data.user.lastName)
+        toast.success('Login successful!');
+        if (response.data.user.role === 'admin') {
+          router.push('/admin')
+        } else {  
+          router.push('/patient/dashboard')
+        }
       } else {
-        setErrors({ general: 'Invalid credentials. Please try again.' })
+        console.log('Login failed:', response.data.message)
+        toast.error(response.data.message || 'Invalid credentials. Please try again.')
       }
     } catch (loginError) {
       console.error('Login error:', loginError)

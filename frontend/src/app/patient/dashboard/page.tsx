@@ -15,7 +15,7 @@ interface Appointment {
 
 export default function PatientDashboard() {
   const router = useRouter()
-  const [userName, setUserName] = useState('Sita Sharma')
+  const [userName, setUserName] = useState('')
   const [isLoading, setIsLoading] = useState(true)
 
   const [appointments] = useState<Appointment[]>([
@@ -59,25 +59,25 @@ export default function PatientDashboard() {
 
   useEffect(() => {
     // Check if user is logged in
-    const email = localStorage.getItem('userEmail')
-    const userType = localStorage.getItem('userType')
+    const token = localStorage.getItem('token')
     
-    if (!email || userType !== 'patient') {
+    if (!token) {
       router.push('/login')
       return
     }
     
     // Extract name from email for display or use default
-    if (email !== 'admin@hospital.com') {
-      const name = email.split('@')[0].replace(/[._]/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
-      setUserName(name)
+    // get the user name from local storage
+    const user = localStorage.getItem('user_name')
+    if (user) {
+      setUserName(user)
     }
     setIsLoading(false)
   }, [router])
 
   const handleLogout = () => {
-    localStorage.removeItem('userEmail')
-    localStorage.removeItem('userType')
+    localStorage.removeItem('token')
+    localStorage.removeItem('user_name')
     router.push('/login')
   }
 

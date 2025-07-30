@@ -12,15 +12,7 @@ export class UserService implements IUserService {
   private doctorRepository = AppDataSource.getRepository(Doctor);
   private patientRepository = AppDataSource.getRepository(Patient);
 
-  async register(userData: {
-    firstName: string;
-    lastName: string;
-    email: string;
-    password: string;
-    role?: UserRole;
-    phoneNumber?: string;
-    address?: string;
-  }): Promise<{ user: User; token: string }> {
+  async register(userData: IUser): Promise<{ user: User; token: string }> {
     const existingUser = await this.userRepository.findOne({
       where: { email: userData.email }
     });
@@ -31,19 +23,19 @@ export class UserService implements IUserService {
 
     const user = this.userRepository.create({
       ...userData,
-      role: userData.role || UserRole.PATIENT
+      role: userData.role || UserRole.PATIENT,
     });
 
     await this.userRepository.save(user);
 
-    // Create associated profile based on role
-    if (user.role === UserRole.DOCTOR) {
-      const doctor = this.doctorRepository.create({ user });
-      await this.doctorRepository.save(doctor);
-    } else if (user.role === UserRole.PATIENT) {
-      const patient = this.patientRepository.create({ user });
-      await this.patientRepository.save(patient);
-    }
+    // // Create associated profile based on role
+    // if (user.role === UserRole.DOCTOR) {
+    //   const doctor = this.doctorRepository.create({ user });
+    //   await this.doctorRepository.save(doctor);
+    // } else if (user.role === UserRole.PATIENT) {
+    //   const patient = this.patientRepository.create({ user });
+    //   await this.patientRepository.save(patient);
+    // }
 
     const token = this.generateToken(user);
     return { user, token };

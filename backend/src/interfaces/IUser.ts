@@ -10,6 +10,10 @@ export interface IUser {
   password?: string; // optional when selecting from DB
   role: UserRole;
   isActive: boolean;
+  dateOfBirth?: Date;
+  gender?: string;
+  emergencyContact?: string;
+  emergencyPhone?: string;
   phoneNumber?: string;
   address?: string;
   profileImage?: string;

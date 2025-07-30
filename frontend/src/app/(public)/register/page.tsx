@@ -19,7 +19,9 @@ import {
   // Mail,
   // MapPin
 } from 'lucide-react'
-import { CONTACT_INFO } from '@/lib/constants'
+import { CONTACT_INFO } from '@/lib/constants';
+import axiosInstance from '@/components/axiosInstance';
+import { toast } from 'react-toastify';
 
 interface RegistrationForm {
   firstName: string
@@ -163,17 +165,20 @@ export default function RegisterPage() {
     setIsLoading(true)
     
     try {
-      // Simulate registration API call
-      await new Promise(resolve => setTimeout(resolve, 2000))
-      
-      // In a real app, you would send the data to your backend
-      console.log('Registration data:', formData)
-      
-      alert('Registration successful! Please check your email for verification.')
-      router.push('/login?message=registration-success')
+        const response = await axiosInstance.post('/users/register', formData);
+      console.log('Registration data:', response.data);
+      if (response.data.status) {
+        // save the token to local storage
+        localStorage.setItem('token', response.data.token)
+        toast.success('Registration successful! Please check your email for verification.')
+        router.push('/login?message=registration-success')
+      } else {
+        console.log('Registration failed:', response.data.message)
+        toast.error(response.data.message || 'Registration failed. Please try again.')
+      }
     } catch (error) {
       console.error('Registration error:', error)
-      alert('Registration failed. Please try again.')
+      toast.error('Registration failed. Please try again.')
     } finally {
       setIsLoading(false)
     }
