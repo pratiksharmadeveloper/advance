@@ -139,7 +139,7 @@ export default function LoginPage() {
       const response = await axiosInstance.post('/auth/login', loginData)
       if (response.data.status) {
         localStorage.setItem('token', response.data.token)
-        localStorage.setItem('user_name', response.data.user.firstName + ' ' + response.data.user.lastName)
+        localStorage.setItem("user", JSON.stringify(response.data.user));
         toast.success('Login successful!');
         if (response.data.user.role === 'admin') {
           router.push('/admin')

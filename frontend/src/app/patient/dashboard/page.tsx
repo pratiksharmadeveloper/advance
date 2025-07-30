@@ -15,7 +15,7 @@ interface Appointment {
 
 export default function PatientDashboard() {
   const router = useRouter()
-  const [userName, setUserName] = useState('')
+  const [user, setUser] = useState<User>({})
   const [isLoading, setIsLoading] = useState(true)
 
   const [appointments] = useState<Appointment[]>([
@@ -68,16 +68,16 @@ export default function PatientDashboard() {
     
     // Extract name from email for display or use default
     // get the user name from local storage
-    const user = localStorage.getItem('user_name')
+    const user = JSON.parse(localStorage.getItem('user') || '{}')
     if (user) {
-      setUserName(user)
+      setUser(user)
     }
     setIsLoading(false)
   }, [router])
 
   const handleLogout = () => {
     localStorage.removeItem('token')
-    localStorage.removeItem('user_name')
+    localStorage.removeItem('user')
     router.push('/login')
   }
 
@@ -150,7 +150,7 @@ export default function PatientDashboard() {
                 <div className="h-8 w-8 rounded-full bg-blue-500 overflow-hidden">
                   <img src="https://randomuser.me/api/portraits/women/44.jpg" alt="User profile" className="h-full w-full object-cover" />
                 </div>
-                <span className="text-gray-700 font-medium">{userName}</span>
+                <span className="text-gray-700 font-medium">{user.firstName} {user.lastName}</span>
                 <i className="fas fa-chevron-down text-gray-500 text-xs"></i>
               </div>
               

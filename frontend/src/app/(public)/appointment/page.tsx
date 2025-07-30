@@ -46,6 +46,7 @@ const timeSlots: TimeSlot[] = [
 ]
 
 export default function AppointmentPage() {
+  
   const [currentStep, setCurrentStep] = useState<BookingStep>('datetime')
   const [selectedTimePeriod, setSelectedTimePeriod] = useState<'morning' | 'afternoon' | 'evening'>('morning')
   const [selectedTimeSlot, setSelectedTimeSlot] = useState<string>('10:00 AM')
