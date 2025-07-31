@@ -21,13 +21,13 @@ export class AdminSeeder {
       }
 
       // Create default admin user
-      const adminPassword = await bcrypt.hash('admin123', 12);
+      // const adminPassword = await bcrypt.hash('admin123', 12);
       
       const adminUser = this.userRepository.create({
         firstName: 'System',
         lastName: 'Administrator',
         email: 'admin@hospital.com',
-        password: adminPassword,
+        password: "admin123", // In production, use a secure password and hash it
         role: UserRole.ADMIN,
         isActive: true,
         phoneNumber: '+977-98XXXXXXXX',

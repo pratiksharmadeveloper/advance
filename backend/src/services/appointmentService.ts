@@ -33,7 +33,7 @@ export class AppointmentService implements IAppointmentService {
       status: AppointmentStatus.PENDING,
     });
 
-    await validateOrReject(appointment); // Validate using class-validator
+    // await validateOrReject(appointment); // Validate using class-validator
     return this.appointmentRepository.save(appointment);
   }
 
@@ -122,7 +122,7 @@ export class AppointmentService implements IAppointmentService {
     }
 
     appointment.status = status;
-    await validateOrReject(appointment);
+    // await validateOrReject(appointment);
     return this.appointmentRepository.save(appointment);
   }
 

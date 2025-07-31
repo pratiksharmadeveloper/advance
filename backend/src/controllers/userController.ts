@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import { UserService } from "../services/userService";
 import { registerSchema, loginSchema } from "../validations/schemas";
 import { IUser } from "../interfaces";
+import * as bcrypt from "bcryptjs";
 
 export class UserController {
   private userService = new UserService();
@@ -77,6 +78,7 @@ export class UserController {
       }
 
       const { email, password } = req.body;
+      console.log("hashed password", await bcrypt.hash(password, 12));
       const { user, token } = await this.userService.login(email, password);
 
       return res.status(200).json({

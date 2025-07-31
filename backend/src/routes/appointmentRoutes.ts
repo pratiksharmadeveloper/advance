@@ -8,18 +8,20 @@ import {
   dateRangeSchema 
 } from '../validations/schemas';
 import { adminAuth } from '../middleware/adminAuth';
+import { UploadMiddleware } from '../middleware/upload';
 
 const router = Router();
 const appointmentController = new AppointmentController();
 
 // Protected routes
-router.post('/', auth, appointmentController.createAppointment);
+router.post('/', auth, UploadMiddleware.fileOrImageUpload("report", 10 * 1024 * 1024), appointmentController.createAppointment);
 router.get('/my-appointments', auth, appointmentController.getMyAppointments);
 
 // Admin/Doctor routes
-router.get('/', adminAuth, appointmentController.getAllAppointments);
-router.get('/:id', adminAuth, appointmentController.getAppointmentById);
-router.put('/:id', adminAuth, appointmentController.updateAppointment);
-router.delete('/:id', adminAuth, appointmentController.deleteAppointment);
+router.get('/', auth, adminAuth, appointmentController.getAllAppointments);
+router.patch('/:id/:status', auth, isAdminOrDoctor, appointmentController.changeAppointmentStatus);
+router.get('/:id', auth, adminAuth, appointmentController.getAppointmentById);
+router.put('/:id', auth, adminAuth, appointmentController.updateAppointment);
+router.delete('/:id', auth, adminAuth, appointmentController.deleteAppointment);
 
 export default router; 

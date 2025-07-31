@@ -8,11 +8,11 @@ import {
 import { UserRole } from "../interfaces/UserRole";
 import * as Yup from "yup";
 import { AppDataSource } from "../config/database";
-import { Appointment } from "../entities";
+import { Appointment, User } from "../entities";
 
 // Validation schema for creating/updating appointments
 const appointmentSchema = Yup.object().shape({
-  doctorId: Yup.string().uuid().required("Doctor ID is required"),
+  doctorId: Yup.string().required("Doctor ID is required"),
   appointmentDate: Yup.date()
     .required("Appointment date is required")
     .min(new Date(), "Appointment date must be in the future"),
@@ -46,9 +46,8 @@ const dateRangeSchema = Yup.object().shape({
     .min(Yup.ref("startDate"), "End date must be after start date"),
 });
 
+const appointmentService = new AppointmentService();
 export class AppointmentController {
-  private appointmentService = new AppointmentService();
-
   async createAppointment(req: Request, res: Response) {
     try {
       // Validate request body
@@ -61,7 +60,7 @@ export class AppointmentController {
           errors: validationError.errors,
         });
       }
-
+      const userRepository = AppDataSource.getRepository(User);
       const {
         userId,
         doctorId,
@@ -72,22 +71,27 @@ export class AppointmentController {
         prescription,
         notes,
         fee,
-        uploadedReport,
         promocode,
         paymentStatus,
       } = req.body;
-
+      let appointmentUser = null;
       // Restrict to patient (own appointment), admin, or doctor
-      if (req.user?.role !== UserRole.ADMIN && req.user?.id !== userId) {
-        return res.status(403).json({
-          status: false,
-          message:
-            "Access denied. You can only create appointments for yourself or as an admin.",
+      if (req.user?.role === UserRole.ADMIN) {
+        appointmentUser = await userRepository.findOne({
+          where: { id: userId },
         });
+      } else {
+        appointmentUser = req.user;
       }
-
+      console.log("Uploaded file:", req.file);
+      // report file upload handling and path determination
+      let reportPath: string | undefined;
+      // report file
+      if (req.file && req.file.path) {
+        reportPath = `${process.env.APP_URL}/uploads/patient_reports/${req.file.filename}`;
+      }
       const appointmentData: Partial<IAppointment> = {
-        user: req.user,
+        user: appointmentUser,
         doctor: doctorId,
         appointmentDate: new Date(appointmentDate),
         type: type as AppointmentType,
@@ -96,12 +100,12 @@ export class AppointmentController {
         prescription,
         notes,
         fee,
-        uploadedReport,
+        uploadedReport: reportPath,
         promocode,
         paymentStatus: paymentStatus as "paid" | "unpaid",
       };
 
-      const appointment = await this.appointmentService.createAppointment(
+      const appointment = await appointmentService.createAppointment(
         appointmentData
       );
 
@@ -164,47 +168,29 @@ export class AppointmentController {
         paymentStatus,
       } = req.query;
 
-      // Convert page and limit to numbers with defaults
-      const pageNum = page ? Number(page) : 1;
-      const limitNum = limit ? Number(limit) : 10;
+      const pageNum = Number(page) || 1;
+      const limitNum = Number(limit) || 10;
 
       const appointmentRepo = AppDataSource.getRepository(Appointment);
-      // create query builder
-      const query = appointmentRepo.createQueryBuilder("appointment");
 
-      if (doctorId) {
-        query.andWhere("appointment.doctor = :doctorId", { doctorId });
-      }
-      if (status) {
-        query.andWhere("appointment.status = :status", { status });
-      }
-      if (startDate && endDate) {
-        query.andWhere(
-          "appointment.appointmentDate BETWEEN :startDate AND :endDate",
-          { startDate, endDate }
-        );
-      }
-      if (departmentId) {
-        query.andWhere("appointment.departmentId = :departmentId", {
-          departmentId,
+      // --------------------------------------------
+      // 1️⃣ Fetch today's appointment stats
+      // --------------------------------------------
+      const now = new Date();
+      const startOfToday = new Date(now.setHours(0, 0, 0, 0));
+      const endOfToday = new Date(now.setHours(23, 59, 59, 999));
+
+      const todayStatsQuery = appointmentRepo
+        .createQueryBuilder("appointment")
+        .where("appointment.appointmentDate BETWEEN :start AND :end", {
+          start: startOfToday,
+          end: endOfToday,
         });
-      }
-      if (paymentStatus) {
-        query.andWhere("appointment.paymentStatus = :paymentStatus", {
-          paymentStatus,
-        });
-      }
-      const todaysAppointments = await query
-        .where("appointment.appointmentDate = CURDATE()")
-        .getRawMany();
-      query.skip((pageNum - 1) * limitNum).take(limitNum);
-      const stats: {
-        total: number;
-        confirmed: number;
-        cancelled: number;
-        pending: number;
-      } = {
-       total: todaysAppointments.map((a) => a.appointmentDate).length,
+
+      const todaysAppointments = await todayStatsQuery.getMany();
+
+      const stats = {
+        total: todaysAppointments.length,
         confirmed: todaysAppointments.filter(
           (a) => a.status === AppointmentStatus.CONFIRMED
         ).length,
@@ -215,14 +201,55 @@ export class AppointmentController {
           (a) => a.status === AppointmentStatus.PENDING
         ).length,
       };
-      const [appointments, total] = await query.getManyAndCount();
+
+      // --------------------------------------------
+      // 2️⃣ Fetch filtered & paginated appointments
+      // --------------------------------------------
+      const mainQuery = appointmentRepo.createQueryBuilder("appointment");
+
+      if (doctorId) {
+        mainQuery.andWhere("appointment.doctor = :doctorId", { doctorId });
+      }
+      if (status) {
+        mainQuery.andWhere("appointment.status = :status", { status });
+      }
+      if (startDate && endDate) {
+        mainQuery.andWhere(
+          "appointment.appointmentDate BETWEEN :startDate AND :endDate",
+          {
+            startDate,
+            endDate,
+          }
+        );
+      }
+      if (departmentId) {
+        mainQuery.andWhere("appointment.departmentId = :departmentId", {
+          departmentId,
+        });
+      }
+      if (paymentStatus) {
+        mainQuery.andWhere("appointment.paymentStatus = :paymentStatus", {
+          paymentStatus,
+        });
+      }
+
+      const total = await mainQuery.getCount();
+
+      const appointments = await mainQuery
+        .skip((pageNum - 1) * limitNum)
+        .take(limitNum)
+        .getMany();
+
+      // --------------------------------------------
+      // ✅ Final response
+      // --------------------------------------------
       return res.status(200).json({
         status: true,
         message: "Appointments retrieved successfully",
         data: {
-          stats,
-          appointments,
-          total,
+          stats, // today's stats
+          appointments, // filtered & paginated list
+          total_pages: Math.ceil(total / limitNum), // total from filtered list
           page: pageNum,
           limit: limitNum,
         },
@@ -239,7 +266,7 @@ export class AppointmentController {
   async getAppointmentById(req: Request, res: Response) {
     try {
       const { id } = req.params;
-      const appointment = await this.appointmentService.getAppointmentById(id);
+      const appointment = await appointmentService.getAppointmentById(id);
 
       // Restrict to appointment owner, doctor, or admin
       if (
@@ -293,7 +320,7 @@ export class AppointmentController {
       const { status } = req.body;
 
       // Restrict to doctor or admin
-      const appointment = await this.appointmentService.getAppointmentById(id);
+      const appointment = await appointmentService.getAppointmentById(id);
       if (
         req.user?.role !== UserRole.ADMIN &&
         req.user?.id !== appointment.doctor
@@ -306,7 +333,7 @@ export class AppointmentController {
       }
 
       const updatedAppointment =
-        await this.appointmentService.updateAppointmentStatus(
+        await appointmentService.updateAppointmentStatus(
           id,
           status as AppointmentStatus
         );
@@ -363,7 +390,7 @@ export class AppointmentController {
       } = req.body;
 
       // Restrict to appointment owner, doctor, or admin
-      const appointment = await this.appointmentService.getAppointmentById(id);
+      const appointment = await appointmentService.getAppointmentById(id);
       if (
         req.user?.role !== UserRole.ADMIN &&
         req.user?.id !== appointment.user.id &&
@@ -393,8 +420,10 @@ export class AppointmentController {
         paymentStatus: paymentStatus as "paid" | "unpaid",
       };
 
-      const updatedAppointment =
-        await this.appointmentService.updateAppointment(id, updateData);
+      const updatedAppointment = await appointmentService.updateAppointment(
+        id,
+        updateData
+      );
 
       return res.status(200).json({
         status: true,
@@ -430,12 +459,12 @@ export class AppointmentController {
     }
   }
 
-  async deleteAppointment(req: Request, res: Response){
+  async deleteAppointment(req: Request, res: Response) {
     try {
       const { id } = req.params;
 
       // Restrict to appointment owner or admin
-      const appointment = await this.appointmentService.getAppointmentById(id);
+      const appointment = await appointmentService.getAppointmentById(id);
       if (
         req.user?.role !== UserRole.ADMIN &&
         req.user?.id !== appointment.user.id
@@ -446,7 +475,7 @@ export class AppointmentController {
         });
       }
 
-      await this.appointmentService.deleteAppointment(id);
+      await appointmentService.deleteAppointment(id);
 
       return res.status(200).json({
         status: true,
@@ -481,7 +510,7 @@ export class AppointmentController {
         });
       }
 
-      const appointments = await this.appointmentService.getAppointmentsByUser(
+      const appointments = await appointmentService.getAppointmentsByUser(
         userId
       );
 
@@ -498,5 +527,64 @@ export class AppointmentController {
       });
     }
   }
+  async changeAppointmentStatus(
+    req: Request,
+    res: Response
+  ): Promise<Response> {
+    try {
+      // Validate request body
+      try {
+        await statusSchema.validate(req.params, { abortEarly: false });
+      } catch (validationError: any) {
+        return res.status(400).json({
+          status: false,
+          message: "Validation failed",
+          errors: validationError.errors,
+        });
+      }
 
+      const { id } = req.params;
+      const { status } = req.params;
+
+      // Restrict to admin or doctor
+      const appointment = await appointmentService.getAppointmentById(id);
+     // restrict to admin or self (user)
+      if (
+        req.user?.role !== UserRole.ADMIN &&
+        req.user?.role !== UserRole.PATIENT
+      ) {
+        return res.status(403).json({
+          status: false,
+          message:
+            "Access denied. Only admin or the patient can change appointment status.",
+        });
+      }
+
+      const updatedAppointment =
+        await appointmentService.updateAppointmentStatus(
+          id,
+          status as AppointmentStatus
+        );
+
+      return res.status(200).json({
+        status: true,
+        message: "Appointment status changed successfully",
+        data: updatedAppointment,
+      });
+    } catch (error: any) {
+      console.error("Change appointment status error:", error);
+
+      if (error.message === "Appointment not found") {
+        return res.status(404).json({
+          status: false,
+          message: "Appointment not found.",
+        });
+      }
+
+      return res.status(500).json({
+        status: false,
+        message: "Failed to change appointment status. Please try again later.",
+      });
+    }
+  }
 }

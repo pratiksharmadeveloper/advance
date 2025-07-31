@@ -75,6 +75,15 @@ export class UploadMiddleware {
       fieldName
     });
   }
+  // both image and document upload
+  static fileOrImageUpload(fieldName: string = 'file', maxSize: number = 10 * 1024 * 1024) {
+    return this.createUploadMiddleware({
+      destination: path.join(__dirname, '../../uploads/patient_reports'),
+      allowedMimeTypes: ['image/jpeg', 'image/png', 'image/jpg', 'image/webp', 'application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'],
+      maxFileSize: maxSize,
+      fieldName
+    });
+  }
 
   static documentUpload(fieldName: string = 'document', maxSize: number = 10 * 1024 * 1024) {
     return this.createUploadMiddleware({
