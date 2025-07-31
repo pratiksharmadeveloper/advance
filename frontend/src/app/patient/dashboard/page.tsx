@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, use } from 'react'
 import { useRouter } from 'next/navigation'
 
 interface Appointment {
@@ -11,6 +11,13 @@ interface Appointment {
   time: string
   location: string
   status: 'confirmed' | 'pending' | 'completed' | 'cancelled'
+}
+
+interface User {
+  firstName?: string
+  lastName?: string
+  email?: string
+  [key: string]: any
 }
 
 export default function PatientDashboard() {
@@ -58,22 +65,30 @@ export default function PatientDashboard() {
   ])
 
   useEffect(() => {
-    // Check if user is logged in
-    const token = localStorage.getItem('token')
-    
-    if (!token) {
-      router.push('/login')
-      return
-    }
-    
-    // Extract name from email for display or use default
-    // get the user name from local storage
-    const user = JSON.parse(localStorage.getItem('user') || '{}')
-    if (user) {
+  const token = localStorage.getItem('token')
+
+  if (!token) {
+    router.push('/login')
+    return
+  }
+
+  const userString = localStorage.getItem('user')
+
+  try {
+    if (userString && userString !== 'undefined') {
+      const user = JSON.parse(userString)
       setUser(user)
+    } else {
+      setUser({})
     }
-    setIsLoading(false)
-  }, [router])
+  } catch (err) {
+    console.error('Invalid JSON in localStorage for "user":', err)
+    setUser({})
+  }
+
+  setIsLoading(false)
+}, [router])
+
 
   const handleLogout = () => {
     localStorage.removeItem('token')
@@ -179,7 +194,7 @@ export default function PatientDashboard() {
         <div className="mb-8 border border-gray-200 rounded-lg p-6 bg-white shadow-sm">
           <div className="flex justify-between items-center">
             <div>
-              <h1 className="text-3xl font-bold text-gray-800">Welcome back, {userName}!</h1>
+              <h1 className="text-3xl font-bold text-gray-800">Welcome back, {user.firstName}!</h1>
               <p className="text-gray-600">Manage your appointments efficiently.</p>
             </div>
             <div className="flex space-x-3">

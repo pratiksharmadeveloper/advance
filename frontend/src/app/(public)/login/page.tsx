@@ -34,21 +34,21 @@ interface OTPForm {
 
 export default function LoginPage() {
   const router = useRouter()
-  const [token, setToken] = useState<string | null>(null);
+  const [token, setToken] = useState<string | null>(null)
 
-  // get the token from local storage
+  // Sync token from localStorage and update on login
   useEffect(() => {
-    const token = localStorage.getItem('token')
-    if (token) {
-      setToken(token)
+    const storedToken = localStorage.getItem('token')
+    if (storedToken) {
+      setToken(storedToken)
     }
-  }, []);
+  }, [])
 
   useEffect(() => {
     if (token) {
       router.push('/patient/dashboard')
     }
-  }, [token, router]);
+  }, [token, router])
 
   const [loginData, setLoginData] = useState<LoginForm>({
     email: '',
@@ -66,7 +66,6 @@ export default function LoginPage() {
   const [otpTimer, setOtpTimer] = useState(0)
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [successMessage, setSuccessMessage] = useState('')
-
 
   // OTP timer countdown
   useEffect(() => {
@@ -92,7 +91,6 @@ export default function LoginPage() {
       setOTPData(prev => ({ ...prev, [field]: value }))
     }
     
-    // Clear errors when user starts typing
     if (errors[field]) {
       setErrors(prev => ({ ...prev, [field]: '' }))
     }
@@ -136,22 +134,33 @@ export default function LoginPage() {
     setSuccessMessage('')
     
     try {
-      const response = await axiosInstance.post('/auth/login', loginData)
+      const response = await axiosInstance.post('/users/login', loginData)
+      console.log('API Response:', response.data) // Debug API response
       if (response.data.status) {
-        localStorage.setItem('token', response.data.token)
-        localStorage.setItem("user", JSON.stringify(response.data.user));
-        toast.success('Login successful!');
-        if (response.data.user.role === 'admin') {
-          router.push('/admin')
-        } else {  
-          router.push('/patient/dashboard')
+        // Handle nested data structure
+        const token = response.data.token || response.data.data?.token
+        const user = response.data.user || response.data.data?.user
+        if (token && user) {
+          localStorage.setItem('token', token)
+          localStorage.setItem('user', JSON.stringify(user))
+          console.log('Stored Token:', localStorage.getItem('token'))
+          console.log('Stored User:', localStorage.getItem('user'))
+          setToken(token) // Update token state
+          toast.success('Login successful!')
+          if (user.role === 'admin') {
+            router.push('/admin')
+          } else {
+            router.push('/patient/dashboard')
+          }
+        } else {
+          throw new Error('Token or user data missing in response')
         }
       } else {
         console.log('Login failed:', response.data.message)
         toast.error(response.data.message || 'Invalid credentials. Please try again.')
       }
     } catch (loginError) {
-      console.error('Login error:', loginError)
+      // console.error('Login error:', loginError.response?.data || loginError.message)
       setErrors({ general: 'Login failed. Please try again.' })
     } finally {
       setIsLoading(false)
@@ -167,11 +176,9 @@ export default function LoginPage() {
     setIsLoading(true)
     
     try {
-      // Simulate OTP sending
       await new Promise(resolve => setTimeout(resolve, 1500))
-      
       setOtpSent(true)
-      setOtpTimer(60) // 60 seconds countdown
+      setOtpTimer(60)
       setSuccessMessage(`OTP sent to ${otpData.email}`)
       setErrors({})
     } catch (otpError) {
@@ -190,13 +197,11 @@ export default function LoginPage() {
     setIsLoading(true)
     
     try {
-      // Simulate OTP verification
       await new Promise(resolve => setTimeout(resolve, 1500))
-      
-      // Mock OTP verification (accept any 6-digit number)
       if (otpData.otp.length === 6) {
-        localStorage.setItem('userType', 'patient')
-        localStorage.setItem('userEmail', otpData.email)
+        localStorage.setItem('token', 'mock-otp-token') // Mock token
+        localStorage.setItem('user', JSON.stringify({ id: 'otp-user-id', email: otpData.email, role: 'patient' }))
+        setToken('mock-otp-token')
         router.push('/patient/dashboard')
       } else {
         setErrors({ otp: 'Invalid OTP. Please try again.' })
@@ -210,11 +215,11 @@ export default function LoginPage() {
   }
 
   const handleGoogleLogin = () => {
-    // Mock Google login
     setIsLoading(true)
     setTimeout(() => {
-      localStorage.setItem('userType', 'patient')
-      localStorage.setItem('userEmail', 'user@gmail.com')
+      localStorage.setItem('token', 'mock-google-token') // Mock token
+      localStorage.setItem('user', JSON.stringify({ id: 'google-user-id', email: 'user@gmail.com', role: 'patient' }))
+      setToken('mock-google-token')
       router.push('/patient/dashboard')
     }, 2000)
   }

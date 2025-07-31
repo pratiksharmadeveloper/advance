@@ -1,9 +1,11 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { ChevronLeft, ChevronRight, Shield, Upload, MapPin, Star, Zap } from 'lucide-react'
+import { toast } from 'react-toastify'
+import axiosInstance from '@/components/axiosInstance'
 
 type BookingStep = 'datetime' | 'patient-info' | 'payment'
 
@@ -46,7 +48,6 @@ const timeSlots: TimeSlot[] = [
 ]
 
 export default function AppointmentPage() {
-  
   const [currentStep, setCurrentStep] = useState<BookingStep>('datetime')
   const [selectedTimePeriod, setSelectedTimePeriod] = useState<'morning' | 'afternoon' | 'evening'>('morning')
   const [selectedTimeSlot, setSelectedTimeSlot] = useState<string>('10:00 AM')
@@ -58,10 +59,14 @@ export default function AppointmentPage() {
     gender: '',
     reason: ''
   })
+  const [isLoggedIn, setIsLoggedIn] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
+  const [errors, setErrors] = useState<Record<string, string>>({})
+  const [doctorId, setDoctorId] = useState('550e8400-e29b-41d4-a716-446655440000') // Example valid UUID
 
   // Calendar state
-  const [currentDate, setCurrentDate] = useState(new Date())
-  const [selectedDate, setSelectedDate] = useState(new Date())
+  const [currentDate, setCurrentDate] = useState(new Date('2025-07-31T00:50:00+05:45')) // Updated to current time
+  const [selectedDate, setSelectedDate] = useState(new Date('2025-07-31T00:50:00+05:45'))
 
   // Progress steps configuration
   const steps = [
@@ -69,6 +74,13 @@ export default function AppointmentPage() {
     { id: 'patient-info', label: 'Patient Info', number: 2 },
     { id: 'payment', label: 'Payment', number: 3 }
   ]
+
+  // Check login status on mount
+  useEffect(() => {
+    const token = localStorage.getItem('token')
+    const user = localStorage.getItem('user')
+    setIsLoggedIn(!!(token && user))
+  }, [])
 
   // Calendar functions
   const getDaysInMonth = (date: Date) => {
@@ -78,12 +90,11 @@ export default function AppointmentPage() {
     const lastDay = new Date(year, month + 1, 0)
     const daysInMonth = lastDay.getDate()
     const startingDay = firstDay.getDay()
-    
     return { daysInMonth, startingDay, year, month }
   }
 
   const isToday = (date: Date) => {
-    const today = new Date()
+    const today = new Date('2025-07-31T00:50:00+05:45')
     return date.toDateString() === today.toDateString()
   }
 
@@ -92,7 +103,7 @@ export default function AppointmentPage() {
   }
 
   const isPast = (date: Date) => {
-    const today = new Date()
+    const today = new Date('2025-07-31T00:50:00+05:45')
     today.setHours(0, 0, 0, 0)
     return date < today
   }
@@ -118,7 +129,6 @@ export default function AppointmentPage() {
     const { daysInMonth, startingDay, year, month } = getDaysInMonth(currentDate)
     const days = []
 
-    // Previous month's days
     for (let i = startingDay - 1; i >= 0; i--) {
       const prevDate = new Date(year, month, -i)
       days.push(
@@ -126,17 +136,13 @@ export default function AppointmentPage() {
           key={`prev-${i}`}
           className="p-3 text-gray-400 cursor-not-allowed"
           disabled
-          aria-label={`${prevDate.toLocaleDateString('en-US', { 
-            month: 'long', 
-            day: 'numeric' 
-          })} (previous month, unavailable)`}
+          aria-label={`${prevDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric' })} (previous month, unavailable)`}
         >
           {prevDate.getDate()}
         </button>
       )
     }
 
-    // Current month's days
     for (let day = 1; day <= daysInMonth; day++) {
       const date = new Date(year, month, day)
       const isCurrentDay = isToday(date)
@@ -148,12 +154,7 @@ export default function AppointmentPage() {
           key={day}
           onClick={() => selectDate(day)}
           disabled={isPastDay}
-          aria-label={`${date.toLocaleDateString('en-US', { 
-            weekday: 'long', 
-            year: 'numeric', 
-            month: 'long', 
-            day: 'numeric' 
-          })}${isPastDay ? ' (unavailable)' : isSelectedDay ? ' (selected)' : ''}`}
+          aria-label={`${date.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}${isPastDay ? ' (unavailable)' : isSelectedDay ? ' (selected)' : ''}`}
           className={`p-3 transition-colors ${
             isPastDay
               ? 'text-gray-400 cursor-not-allowed'
@@ -174,8 +175,13 @@ export default function AppointmentPage() {
 
   const getTimeSlotStyle = (slot: TimeSlot) => {
     const baseClasses = "w-full py-2 px-3 rounded text-sm transition-colors"
-    
-    if (slot.status === 'booked') {
+    const now = new Date('2025-07-31T00:50:00+05:45')
+    const [slotHour, slotPeriod] = slot.time.split(' ')
+    const slotTime = new Date(selectedDate)
+    const hour = parseInt(slotHour.split(':')[0])
+    slotTime.setHours(slotPeriod === 'PM' && hour !== 12 ? hour + 12 : hour, parseInt(slotHour.split(':')[1]), 0, 0)
+
+    if (slot.status === 'booked' || (isToday(selectedDate) && slotTime < now)) {
       return `${baseClasses} bg-gray-100 border border-gray-200 text-gray-500 cursor-not-allowed`
     }
     
@@ -201,7 +207,13 @@ export default function AppointmentPage() {
   }
 
   const handleTimeSlotSelect = (slot: TimeSlot) => {
-    if (slot.status !== 'booked') {
+    const now = new Date('2025-07-31T00:50:00+05:45')
+    const [slotHour, slotPeriod] = slot.time.split(' ')
+    const slotTime = new Date(selectedDate)
+    const hour = parseInt(slotHour.split(':')[0])
+    slotTime.setHours(slotPeriod === 'PM' && hour !== 12 ? hour + 12 : hour, parseInt(slotHour.split(':')[1]), 0, 0)
+
+    if (slot.status !== 'booked' && !(isToday(selectedDate) && slotTime < now)) {
       setSelectedTimeSlot(slot.time)
       setSelectedTimePeriod(slot.period)
     }
@@ -213,6 +225,64 @@ export default function AppointmentPage() {
 
   const validatePatientInfo = () => {
     return patientInfo.fullName.trim() !== '' && patientInfo.phone.trim() !== ''
+  }
+
+  const getSafeUserData = () => {
+    if (typeof window === 'undefined') return null
+    try {
+      const userJson = localStorage.getItem('user')
+      return userJson ? JSON.parse(userJson) : null
+    } catch (error) {
+      console.error('Error parsing user data:', error)
+      return null
+    }
+  }
+
+  const createAppointment = async () => {
+    if (!doctorId) {
+      toast.error('Doctor information is missing')
+      return
+    }
+
+    setIsLoading(true)
+    setErrors({})
+
+    try {
+      const user = getSafeUserData()
+      // console.log('User data:', user)
+      if (!user?.id) {
+        throw new Error('User information is missing. Please log in.')
+      }
+
+      const appointmentDate = new Date(selectedDate)
+      const [time, period] = selectedTimeSlot.split(' ')
+      const hours = period === 'PM' && time.split(':')[0] !== '12' ? parseInt(time.split(':')[0]) + 12 : parseInt(time.split(':')[0])
+      appointmentDate.setHours(hours, parseInt(time.split(':')[1]), 0, 0)
+
+      const payload = {
+        appointmentDate: appointmentDate.toISOString(),
+        type: 'consultation',
+        symptoms: patientInfo.reason || 'Headache and fever',
+        doctorId,
+        patientId: user.id,
+        notes: patientInfo.reason || 'Patient has been experiencing symptoms for 3 days',
+        fee: 150.00
+      }
+
+      const response = await axiosInstance.post('/appointments', payload)
+      if (response.data.status) {
+        toast.success('Appointment booked successfully!')
+        window.location.href = '/'
+      } else {
+        throw new Error(response.data.message || 'Failed to book appointment')
+      }
+    } catch (error) {
+      console.error('Booking error:', error)
+      toast.error('Failed to book appointment. Please try again.')
+      setErrors({ general: 'Failed to book appointment. Please try again.' })
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   const ProgressBar = () => (
@@ -301,6 +371,16 @@ export default function AppointmentPage() {
 
       {/* Main Content */}
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        {/* Error Message */}
+        {errors.general && (
+          <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-center">
+            <svg className="h-5 w-5 text-red-500 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span className="text-red-700">{errors.general}</span>
+          </div>
+        )}
+
         {/* Date & Time Selection */}
         {currentStep === 'datetime' && (
           <div className="border border-gray-200 rounded-lg p-6">
@@ -404,7 +484,12 @@ export default function AppointmentPage() {
                     <button
                       key={slot.time}
                       onClick={() => handleTimeSlotSelect(slot)}
-                      disabled={slot.status === 'booked'}
+                      disabled={slot.status === 'booked' || (isToday(selectedDate) && new Date(selectedDate).setHours(
+                        parseInt(slot.time.split(':')[0]) + (slot.time.includes('PM') && slot.time.split(':')[0] !== '12' ? 12 : 0),
+                        parseInt(slot.time.split(':')[1].split(' ')[0]),
+                        0,
+                        0
+                      ) < new Date('2025-07-31T00:50:00+05:45'))}
                       aria-label={`${slot.time} appointment slot, ${slot.status}${selectedTimeSlot === slot.time ? ', currently selected' : ''}`}
                       className={getTimeSlotStyle(slot)}
                     >
@@ -572,7 +657,7 @@ export default function AppointmentPage() {
                     <h3 className="font-medium text-gray-900">Pay Online</h3>
                     <p className="text-sm text-gray-500">eSewa, Khalti, FonePay, Visa, Mastercard</p>
                   </div>
-                  <span className="font-medium">¥500</span>
+                  <span className="font-medium">¥150</span>
                 </div>
               </button>
               
@@ -582,7 +667,7 @@ export default function AppointmentPage() {
                     <h3 className="font-medium text-gray-900">Pay at Hospital</h3>
                     <p className="text-sm text-gray-500">Pay during your visit</p>
                   </div>
-                  <span className="font-medium">¥500</span>
+                  <span className="font-medium">¥150</span>
                 </div>
               </button>
               
@@ -618,7 +703,7 @@ export default function AppointmentPage() {
               <div className="space-y-2 mb-4">
                 <div className="flex justify-between">
                   <span className="text-gray-600">Consultation Fee</span>
-                  <span className="font-medium">¥500</span>
+                  <span className="font-medium">¥150</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">Platform Fee</span>
@@ -631,7 +716,7 @@ export default function AppointmentPage() {
               </div>
               <div className="border-t border-gray-200 pt-3 flex justify-between">
                 <span className="font-bold">Total</span>
-                <span className="font-bold">¥500</span>
+                <span className="font-bold">¥150</span>
               </div>
             </div>
           </div>
@@ -653,16 +738,33 @@ export default function AppointmentPage() {
           
           <button
             onClick={() => {
-              if (currentStep === 'datetime') setCurrentStep('patient-info')
-              else if (currentStep === 'patient-info' && validatePatientInfo()) setCurrentStep('payment')
-              else if (currentStep === 'payment') window.location.href = '/' // Complete booking
+              if (currentStep === 'datetime') {
+                if (!isLoggedIn) {
+                  window.location.href = '/login?redirect=/appointment'
+                  return
+                }
+                setCurrentStep('patient-info')
+              } else if (currentStep === 'patient-info' && validatePatientInfo()) {
+                setCurrentStep('payment')
+              } else if (currentStep === 'payment') {
+                createAppointment()
+              }
             }}
-            disabled={currentStep === 'patient-info' && !validatePatientInfo()}
+            disabled={(currentStep === 'patient-info' && !validatePatientInfo()) || isLoading}
             className="ml-auto px-6 py-3 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-600 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed"
           >
-            {currentStep === 'datetime' && 'Continue to Patient Info'}
-            {currentStep === 'patient-info' && 'Continue to Payment'}
-            {currentStep === 'payment' && 'Confirm Booking'}
+            {isLoading && currentStep === 'payment' ? (
+              <div className="flex items-center justify-center">
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                Booking...
+              </div>
+            ) : (
+              <>
+                {currentStep === 'datetime' && (isLoggedIn ? 'Continue to Patient Info' : 'Log In to Continue')}
+                {currentStep === 'patient-info' && 'Continue to Payment'}
+                {currentStep === 'payment' && 'Confirm Booking'}
+              </>
+            )}
           </button>
         </div>
       </div>
