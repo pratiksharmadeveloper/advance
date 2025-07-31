@@ -12,7 +12,6 @@ import { Appointment } from "../entities";
 
 // Validation schema for creating/updating appointments
 const appointmentSchema = Yup.object().shape({
-  userId: Yup.string().uuid().required("Patient ID is required"),
   doctorId: Yup.string().uuid().required("Doctor ID is required"),
   appointmentDate: Yup.date()
     .required("Appointment date is required")
