@@ -11,13 +11,13 @@ const departmentController = new DepartmentController();
 router.get('/active', departmentController.getActiveDepartments);
 
 // Protected routes (authentication required)
-router.use(adminAuth);
+router.use(auth);
 
 // Department CRUD operations
-router.post('/', UploadMiddleware.departmentImageUpload('image'), departmentController.createDepartment);
+router.post('/', adminAuth, UploadMiddleware.departmentImageUpload('image'), departmentController.createDepartment);
 router.get('/', departmentController.getAllDepartments);
-router.get('/:id', departmentController.getDepartmentById);
-router.put('/:id', UploadMiddleware.departmentImageUpload('image'), departmentController.updateDepartment);
-router.delete('/:id', departmentController.deleteDepartment);
+router.get('/:id', adminAuth, departmentController.getDepartmentById);
+router.put('/:id', adminAuth, UploadMiddleware.departmentImageUpload('image'), departmentController.updateDepartment);
+router.delete('/:id', adminAuth, departmentController.deleteDepartment);
 
 export default router; 
