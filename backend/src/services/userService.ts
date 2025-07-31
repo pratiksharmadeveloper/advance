@@ -69,10 +69,29 @@ export class UserService implements IUserService {
     return { user, token };
   }
 
-  async getAllUsers(): Promise<User[]> {
-    return this.userRepository.find({
-      select: ['id', 'firstName', 'lastName', 'email', 'role', 'isActive', 'createdAt']
-    });
+  async getAllUsers(
+    {
+      search,
+      page = 1,
+      limit = 10
+    }: {
+      search?: string;
+      page?: number;
+      limit?: number;
+    }
+  ): Promise<User[]> {
+    const queryBuilder = this.userRepository.createQueryBuilder('user')
+      .select(['user.id', 'user.firstName', 'user.lastName', 'user.email', 'user.role', 'user.isActive', 'user.createdAt']);
+
+    if (search) {
+      queryBuilder.where('user.firstName LIKE :search OR user.lastName LIKE :search OR user.email LIKE :search', {
+        search: `%${search}%`
+      });
+    }
+
+    queryBuilder.skip((page - 1) * limit).take(limit);
+
+    return queryBuilder.getMany();
   }
 
   async getUserById(id: string): Promise<User | null> {

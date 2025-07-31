@@ -90,7 +90,7 @@ export class AdminController {
         totalDoctors,
         totalPatients
       ] = await Promise.all([
-        this.userService.getAllUsers(),
+        this.userService.getAllUsers({}),
         this.departmentService.getAllDepartments(),
         this.departmentService.getActiveDepartments(),
         this.userService.getUsersByRole(UserRole.DOCTOR),

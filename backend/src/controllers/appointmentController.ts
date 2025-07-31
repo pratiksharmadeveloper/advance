@@ -236,6 +236,7 @@ export class AppointmentController {
       const total = await mainQuery.getCount();
 
       const appointments = await mainQuery
+      .leftJoinAndSelect("appointment.user", "user")
         .skip((pageNum - 1) * limitNum)
         .take(limitNum)
         .getMany();
@@ -584,6 +585,112 @@ export class AppointmentController {
       return res.status(500).json({
         status: false,
         message: "Failed to change appointment status. Please try again later.",
+      });
+    }
+  }
+  async rescheduleAppointment(req: Request, res: Response) {
+    try {
+      const { id } = req.params;
+      const { newDate } = req.body;
+
+      // Validate new date
+      if (!newDate || isNaN(new Date(newDate).getTime())) {
+        return res.status(400).json({
+          status: false,
+          message: "Invalid new appointment date.",
+        });
+      }
+
+      // Restrict to admin or doctor
+      const appointment = await appointmentService.getAppointmentById(id);
+      if (
+        req.user?.role !== UserRole.ADMIN &&
+        req.user?.role !== UserRole.PATIENT
+      ) {
+        return res.status(403).json({
+          status: false,
+          message:
+            "Access denied. Only admin or the patient can reschedule appointments.",
+        });
+      }
+
+      const updatedAppointment =
+        await appointmentService.rescheduleAppointment(id, new Date(newDate));
+
+      return res.status(200).json({
+        status: true,
+        message: "Appointment rescheduled successfully",
+        data: updatedAppointment,
+      });
+    } catch (error: any) {
+      console.error("Reschedule appointment error:", error);
+
+      if (error.message === "Appointment not found") {
+        return res.status(404).json({
+          status: false,
+          message: "Appointment not found.",
+        });
+      }
+
+      return res.status(500).json({
+        status: false,
+        message: "Failed to reschedule appointment. Please try again later.",
+      });
+    }
+  }
+  async changePaymentStatus(
+    req: Request,
+    res: Response
+  ): Promise<Response> {
+    try {
+      const { id } = req.params;
+      const { paymentStatus } = req.body;
+
+      // Validate payment status
+      if (!paymentStatus || !["paid", "unpaid"].includes(paymentStatus)) {
+        return res.status(400).json({
+          status: false,
+          message: "Invalid payment status.",
+        });
+      }
+
+      // Restrict to admin
+      const appointment = await appointmentService.getAppointmentById(id);
+      if (
+        req.user?.role !== UserRole.ADMIN
+      ) {
+        return res.status(403).json({
+          status: false,
+          message:
+            "Access denied. Only admin can change payment status.",
+        });
+      }
+
+      let updatedAppointment;
+      if (paymentStatus === "paid") {
+        updatedAppointment = await appointmentService.markAsPaid(id);
+      } else {
+        updatedAppointment = await appointmentService.markAsUnpaid(id);
+      }
+
+      return res.status(200).json({
+        status: true,
+        message: `Appointment marked as ${paymentStatus} successfully`,
+        data: updatedAppointment,
+      });
+    } catch (error: any) {
+      console.error("Change payment status error:", error);
+
+      if (error.message === "Appointment not found") {
+        return res.status(404).json({
+          status: false,
+          message: "Appointment not found.",
+        });
+      }
+
+      return res.status(500).json({
+        status: false,
+        message: "Failed to change payment status. Please try again later.",
       });
     }
   }

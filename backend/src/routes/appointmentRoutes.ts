@@ -19,7 +19,9 @@ router.get('/my-appointments', auth, appointmentController.getMyAppointments);
 
 // Admin/Doctor routes
 router.get('/', auth, adminAuth, appointmentController.getAllAppointments);
-router.patch('/:id/:status', auth, isAdminOrDoctor, appointmentController.changeAppointmentStatus);
+router.patch('/reschedule/:id', auth, appointmentController.rescheduleAppointment);
+router.patch('/:id/:status', auth, appointmentController.changeAppointmentStatus);
+router.patch('/payment/:id', auth, appointmentController.changePaymentStatus);
 router.get('/:id', auth, adminAuth, appointmentController.getAppointmentById);
 router.put('/:id', auth, adminAuth, appointmentController.updateAppointment);
 router.delete('/:id', auth, adminAuth, appointmentController.deleteAppointment);

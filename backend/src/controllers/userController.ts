@@ -203,7 +203,12 @@ export class UserController {
 
   getAllUsers = async (req: Request, res: Response) => {
     try {
-      const users = await this.userService.getAllUsers();
+      const {search, page = 1, limit = 10} = req.query;
+      const users = await this.userService.getAllUsers({
+        search: search ? String(search) : undefined,
+        page: Number(page),
+        limit: Number(limit),
+      });
       
       res.status(200).json({
         status: true,

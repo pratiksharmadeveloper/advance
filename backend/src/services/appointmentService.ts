@@ -157,7 +157,6 @@ export class AppointmentService implements IAppointmentService {
       paymentStatus: updateData.paymentStatus,
     });
 
-    await validateOrReject(appointment);
     return this.appointmentRepository.save(appointment);
   }
 
@@ -220,4 +219,32 @@ export class AppointmentService implements IAppointmentService {
       ])
       .getMany();
   }
+  async rescheduleAppointment(id: string, newDate: Date): Promise<IAppointment | null> {
+    const appointment = await this.appointmentRepository.findOne({ where: { id } });
+    if (!appointment) {
+      throw new Error('Appointment not found');
+    }
+
+    appointment.appointmentDate = newDate;
+    return this.appointmentRepository.save(appointment);
+  }
+  async markAsPaid(id: string): Promise<IAppointment | null> {
+    const appointment = await this.appointmentRepository.findOne({ where: { id } });
+    if (!appointment) {
+      throw new Error('Appointment not found');
+    }
+
+    appointment.paymentStatus = 'paid';
+    return this.appointmentRepository.save(appointment);
+  }
+  async markAsUnpaid(id: string): Promise<IAppointment | null> {
+    const appointment = await this.appointmentRepository.findOne({ where: { id } });
+    if (!appointment) {
+      throw new Error('Appointment not found');
+    }
+
+    appointment.paymentStatus = 'unpaid';
+    return this.appointmentRepository.save(appointment);
+  }
+  
 }
