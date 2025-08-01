@@ -63,7 +63,7 @@ export const handleAppointmentAction = async (
 
       case "view":
         if (router) {
-          router.push(`/appointments/${appointmentId}`);
+          router.push(`/admin/appointments/${appointmentId}`);
         } else {
           console.warn("Router not provided for view action");
           setNotification({

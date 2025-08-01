@@ -19,10 +19,10 @@ export class DepartmentController {
           errors: validationError.errors 
         });
       }
-
+      const absoluteFilePath = `${process.env.APP_URL}/uploads/departments/${req.file?.filename}`;
       const departmentData: Partial<IDepartment> = {
         ...req.body,
-        imageUrl: req.file?.filename ? UploadMiddleware.getFileUrl(req.file.filename, 'departments') : undefined
+        imageUrl: absoluteFilePath
       };
 
       const department = await this.departmentService.createDepartment(departmentData);

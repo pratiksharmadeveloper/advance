@@ -209,11 +209,20 @@ export class UserController {
         page: Number(page),
         limit: Number(limit),
       });
-      
+      const formatedUsers = users.map(user => ({
+        id: user.id,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        email: user.email,
+        role: user.role,
+        isActive: user.isActive,
+        createdAt: user.createdAt,
+        appointmentCount: user.appointments ? user.appointments.length : 0, // Count appointments
+      }));
       res.status(200).json({
         status: true,
         message: "Users retrieved successfully",
-        data: { users }
+        data: { users: formatedUsers},
       });
     } catch (error: any) {
       console.error('Get all users error:', error);

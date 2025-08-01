@@ -10,12 +10,15 @@ export const initMiddleware = (app: Express) => {
   } else {
     app.use(morgan("dev"));
   }
-
-  // Helmet for security - helps secure Express apps by setting various HTTP headers
-  app.use(helmet());
-
-  // Serve static files from "uploads"
-  app.use(express.static("uploads"));
+// Serve static files for uploaded images
+app.use(
+  '/uploads',
+  express.static('uploads', {
+    setHeaders: (res) => {
+      res.set('Access-Control-Allow-Origin', '*');
+    }
+  })
+);
 
   // Body parsing
   app.use(express.urlencoded({ extended: true, limit: "20mb" }));
@@ -26,6 +29,8 @@ export const initMiddleware = (app: Express) => {
     ? ["https://yourdomain.com"]
     : ["http://localhost:3000", "http://localhost:3001"];
 
+  // Helmet for security - helps secure Express apps by setting various HTTP headers
+  app.use(helmet());
   app.use(
     cors({
       origin: allowedOrigins,

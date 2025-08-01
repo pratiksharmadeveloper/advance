@@ -81,7 +81,12 @@ export class UserService implements IUserService {
     }
   ): Promise<User[]> {
     const queryBuilder = this.userRepository.createQueryBuilder('user')
-      .select(['user.id', 'user.firstName', 'user.lastName', 'user.email', 'user.role', 'user.isActive', 'user.createdAt']);
+      .where('user.role != :role', { role: UserRole.ADMIN })
+      // join and count appointments if needed
+      .leftJoinAndSelect('user.appointments', 'appointment')
+      .orderBy('user.createdAt', 'DESC')
+      .select(['user.id', 'user.firstName', 'user.lastName', 'user.email', 'user.role', 'user.isActive', 'user.createdAt', "appointment.id", ]);
+
 
     if (search) {
       queryBuilder.where('user.firstName LIKE :search OR user.lastName LIKE :search OR user.email LIKE :search', {
@@ -90,8 +95,9 @@ export class UserService implements IUserService {
     }
 
     queryBuilder.skip((page - 1) * limit).take(limit);
-
-    return queryBuilder.getMany();
+    const data = await queryBuilder.getMany();
+    // console.log('getAllUsers data:', JSON.stringify(data, null, 2));
+    return data;
   }
 
   async getUserById(id: string): Promise<User | null> {

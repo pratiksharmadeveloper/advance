@@ -1,425 +1,395 @@
-"use client"
+"use client";
 
-import { useState } from 'react'
-import { Calendar, MapPin, Phone, Mail, User, Bell, Settings, LogOut, Plus, FileText, Heart, Activity, Pill } from 'lucide-react'
+import { useState, useEffect } from "react";
+import Link from "next/link";
+import Button from "@/components/ui/Button";
+import Card, { CardContent } from "@/components/ui/Card";
+import Badge from "@/components/ui/Badge";
+import Input from "@/components/ui/Input";
+import axiosInstance from "@/components/axiosInstance";
+import { ExternalLink, Import } from "lucide-react";
 
-export default function EnhancedPatientDashboard() {
-  const [showProfile, setShowProfile] = useState(false)
+interface Patient {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  status: "active" | "inactive";
+  createdAt: string;
+  appointmentCount: number;
+}
 
-  // Mock patient data
-  const patient = {
-    name: "Sita Sharma",
-    id: "AIH-00123",
-    age: 34,
-    gender: "Female",
-    phone: "+977 980XXXXXXX",
-    email: "sita.sharma@email.com",
-    address: "Lalitpur, Nepal",
-    bloodType: "O+",
-    emergencyContact: "+977 981XXXXXXX"
-  }
+export default function PatientsPage() {
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedStatus, setSelectedStatus] = useState("");
+  const [selectedPatients, setSelectedPatients] = useState<string[]>([]);
+  const [patients, setPatients] = useState<Patient[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const upcomingAppointments = [
-    {
-      id: 1,
-      date: "2025-07-20",
-      time: "10:30 AM",
-      doctor: "Dr. Anil Karki",
-      department: "Cardiology",
-      type: "Follow-up",
-      location: "Room 203, Building A",
-      status: "confirmed",
-      notes: "Bring previous test reports"
-    },
-    {
-      id: 2,
-      date: "2025-07-25",
-      time: "2:00 PM",
-      doctor: "Dr. Priya Sharma",
-      department: "Neurology",
-      type: "Consultation",
-      location: "Room 105, Building B",
-      status: "pending",
-      notes: "Fasting required"
+  useEffect(() => {
+    fetchPatients();
+  }, []);
+
+  const fetchPatients = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        throw new Error("Authentication token not found");
+      }
+
+      const response = await axiosInstance.get("/users", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (response.data.status) {
+        // Assuming the API returns an array of users with the required fields
+        const formattedPatients = response.data.data.users.map((user: any) => ({
+          id: user.id,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          email: user.email,
+          status: user.status || "active", // Default to active if not provided
+          createdAt: user.createdAt,
+          appointmentCount: user.appointmentCount || 0, // Default to 0 if not provided
+        }));
+        setPatients(formattedPatients);
+      }
+    } catch (error) {
+      console.error("Error fetching patients:", error);
+    } finally {
+      setIsLoading(false);
     }
-  ]
+  };
 
-  const recentAppointments = [
-    {
-      id: 3,
-      date: "2025-07-10",
-      time: "10:30 AM",
-      doctor: "Dr. Anil Karki",
-      department: "Cardiology",
-      type: "Check-up",
-      status: "completed",
-      prescription: "Available",
-      labResults: "Normal"
-    },
-    {
-      id: 4,
-      date: "2025-07-05",
-      time: "3:00 PM",
-      doctor: "Dr. Suresh Bista",
-      department: "General Medicine",
-      type: "Consultation",
-      status: "completed",
-      prescription: "Available",
-      labResults: "Pending"
-    }
-  ]
+  const togglePatient = (id: string) => {
+    setSelectedPatients((prev) =>
+      prev.includes(id) ? prev.filter((patientId) => patientId !== id) : [...prev, id]
+    );
+  };
 
-  const healthMetrics = [
-    { label: "Blood Pressure", value: "120/80", status: "normal", icon: Heart },
-    { label: "Heart Rate", value: "72 bpm", status: "normal", icon: Activity },
-    { label: "Weight", value: "65 kg", status: "normal", icon: User },
-    { label: "BMI", value: "22.5", status: "normal", icon: Activity }
-  ]
+  const toggleAllPatients = () => {
+    setSelectedPatients((prev) =>
+      prev.length === patients.length ? [] : patients.map((patient) => patient.id)
+    );
+  };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'confirmed': return 'bg-green-100 text-green-800 border-green-200'
-      case 'pending': return 'bg-yellow-100 text-yellow-800 border-yellow-200'
-      case 'completed': return 'bg-blue-100 text-blue-800 border-blue-200'
-      case 'cancelled': return 'bg-red-100 text-red-800 border-red-200'
-      default: return 'bg-gray-100 text-gray-800 border-gray-200'
-    }
-  }
+  const filteredPatients = patients.filter((patient) => {
+    const fullName = `${patient.firstName} ${patient.lastName}`.toLowerCase();
+    const matchesSearch =
+      fullName.includes(searchQuery.toLowerCase()) ||
+      patient.email.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesStatus = selectedStatus === "" || patient.status === selectedStatus;
+    return matchesSearch && matchesStatus;
+  });
 
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'normal': return 'bg-green-100 text-green-600'
-      case 'warning': return 'bg-yellow-100 text-yellow-600'
-      case 'critical': return 'bg-red-100 text-red-600'
-      default: return 'bg-gray-100 text-gray-600'
-    }
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-64">
+        <div className="text-center">
+          <svg
+            className="animate-spin h-8 w-8 text-blue-500 mx-auto mb-4"
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+          >
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+            <path
+              className="opacity-75"
+              fill="currentColor"
+              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+            ></path>
+          </svg>
+          <p className="text-gray-600">Loading patients...</p>
+        </div>
+      </div>
+    );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className="bg-white shadow-sm border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-4">
-            <div className="flex items-center space-x-4">
-              <div className="flex items-center space-x-2">
-                <Heart className="h-8 w-8 text-red-500" />
-                <span className="text-xl font-bold text-gray-900">HealthPortal</span>
-              </div>
+    <div className="space-y-6">
+      {/* Page Header */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div className="flex items-center space-x-4">
+          <h1 className="text-2xl font-bold text-gray-800">Patient Management</h1>
+          <Badge variant="info">Admin Panel</Badge>
+        </div>
+      </div>
+
+      {/* Search and Filter Section */}
+      <Card>
+        <CardContent>
+          {/* Search Header */}
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+            <h2 className="text-lg font-semibold text-gray-700 whitespace-nowrap">Search Patients</h2>
+
+            <div className="relative flex-grow max-w-md">
+              <Input
+                type="text"
+                placeholder="Search by name or email..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                leftIcon={
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-5 w-5"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="2"
+                      d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                    />
+                  </svg>
+                }
+              />
             </div>
-            
-            <div className="flex items-center space-x-4">
-              {/* Notifications */}
-              <button className="relative p-2 rounded-lg hover:bg-gray-100 transition-colors">
-                <Bell className="h-5 w-5 text-gray-600" />
-                <span className="absolute -top-1 -right-1 h-4 w-4 bg-red-500 rounded-full text-xs text-white flex items-center justify-center">2</span>
-              </button>
-              
-              {/* Profile Dropdown */}
+
+            <div className="flex gap-3">
               <div className="relative">
-                <button
-                  onClick={() => setShowProfile(!showProfile)}
-                  className="flex items-center space-x-2 p-2 rounded-lg hover:bg-gray-100 transition-colors"
+                <select
+                  className="appearance-none bg-gray-100 border border-gray-300 rounded-md px-4 py-2 pr-8 text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  value={selectedStatus}
+                  onChange={(e) => setSelectedStatus(e.target.value)}
                 >
-                  <div className="h-8 w-8 rounded-full bg-blue-500 flex items-center justify-center">
-                    <span className="text-white font-medium text-sm">SS</span>
-                  </div>
-                  <span className="font-medium text-gray-700">{patient.name}</span>
-                </button>
-                
-                {showProfile && (
-                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-50">
-                    <div className="p-4 border-b border-gray-200">
-                      <p className="font-medium text-gray-900">{patient.name}</p>
-                      <p className="text-sm text-gray-500">ID: {patient.id}</p>
-                    </div>
-                    <div className="py-2">
-                      <button className="w-full text-left px-4 py-2 hover:bg-gray-50 flex items-center space-x-2">
-                        <User className="h-4 w-4 text-gray-500" />
-                        <span className="text-gray-700">Edit Profile</span>
-                      </button>
-                      <button className="w-full text-left px-4 py-2 hover:bg-gray-50 flex items-center space-x-2">
-                        <Settings className="h-4 w-4 text-gray-500" />
-                        <span className="text-gray-700">Settings</span>
-                      </button>
-                      <button className="w-full text-left px-4 py-2 hover:bg-gray-50 flex items-center space-x-2 text-red-600">
-                        <LogOut className="h-4 w-4" />
-                        <span>Logout</span>
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Welcome Section */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Welcome back, {patient.name}!</h1>
-          <p className="text-gray-600 mt-1">Manage your health and appointments in one place.</p>
-        </div>
-
-        {/* Quick Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-            <div className="flex items-center">
-              <div className="p-3 rounded-lg bg-blue-100">
-                <Calendar className="h-6 w-6 text-blue-600" />
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Next Appointment</p>
-                <p className="text-lg font-bold text-gray-900">July 20</p>
-              </div>
-            </div>
-          </div>
-          
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-            <div className="flex items-center">
-              <div className="p-3 rounded-lg bg-green-100">
-                <FileText className="h-6 w-6 text-green-600" />
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Lab Reports</p>
-                <p className="text-lg font-bold text-gray-900">3 New</p>
-              </div>
-            </div>
-          </div>
-          
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-            <div className="flex items-center">
-              <div className="p-3 rounded-lg bg-purple-100">
-                <Pill className="h-6 w-6 text-purple-600" />
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Prescriptions</p>
-                <p className="text-lg font-bold text-gray-900">2 Active</p>
-              </div>
-            </div>
-          </div>
-          
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-            <div className="flex items-center">
-              <div className="p-3 rounded-lg bg-red-100">
-                <Heart className="h-6 w-6 text-red-600" />
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Health Score</p>
-                <p className="text-lg font-bold text-gray-900">Excellent</p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Main Content */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Left Column */}
-          <div className="lg:col-span-2 space-y-6">
-            {/* Upcoming Appointments */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200">
-              <div className="p-6 border-b border-gray-200">
-                <div className="flex items-center justify-between">
-                  <h2 className="text-xl font-semibold text-gray-900">Upcoming Appointments</h2>
-                  <button className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2">
-                    <Plus className="h-4 w-4" />
-                    <span>Book New</span>
-                  </button>
+                  <option value="">All Status</option>
+                  <option value="active">Active</option>
+                  <option value="inactive">Inactive</option>
+                </select>
+                <div className="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-4 w-4 text-gray-500"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+                  </svg>
                 </div>
               </div>
-              
-              <div className="p-6">
-                <div className="space-y-4">
-                  {upcomingAppointments.map((appointment) => (
-                    <div key={appointment.id} className="border-2 border-gray-200 rounded-lg p-6 hover:border-blue-300 transition-colors">
-                      <div className="flex items-start justify-between">
+            </div>
+          </div>
+
+          <hr className="my-4 border-gray-200" />
+
+          {/* Patient List Header */}
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-4">
+            <div className="flex items-center space-x-4">
+              <p className="text-sm text-gray-600">Showing {filteredPatients.length} patients</p>
+              <div className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  id="selectAll"
+                  className="rounded text-blue-500 focus:ring-blue-500"
+                  checked={selectedPatients.length === patients.length}
+                  onChange={toggleAllPatients}
+                />
+                <label htmlFor="selectAll" className="text-sm text-gray-600">Select All</label>
+              </div>
+            </div>
+            <div className="flex space-x-2">
+              <Button variant="outline" size="sm">
+                <Import className="h-4 w-4 mr-2 text-blue-600" />
+                Import
+              </Button>
+              <Button variant="outline" size="sm">
+                <ExternalLink className="h-4 w-4 mr-2 text-green-600" />
+                Export
+              </Button>
+            </div>
+          </div>
+
+          {/* Patient List */}
+          <div className="space-y-3">
+            {/* Column Headers - Desktop Only */}
+            <div className="hidden md:grid grid-cols-12 gap-4 py-3 px-4 bg-gray-100 rounded-lg font-medium text-gray-700">
+              <div className="col-span-1"></div>
+              <div className="col-span-3">Patient</div>
+              <div className="col-span-3">Email</div>
+              <div className="col-span-1">Appointments</div>
+              <div className="col-span-1">Status</div>
+              <div className="col-span-2">Created</div>
+              <div className="col-span-1">Actions</div>
+            </div>
+
+            {/* Patient Items */}
+            {filteredPatients.map((patient) => (
+              <div key={patient.id} className="bg-white border border-gray-200 rounded-lg hover:bg-gray-50">
+                {/* Desktop View */}
+                <div className="hidden md:grid grid-cols-12 gap-4 items-center py-3 px-4">
+                  <div className="col-span-1">
+                    <input
+                      type="checkbox"
+                      className="rounded text-blue-500 focus:ring-blue-500"
+                      checked={selectedPatients.includes(patient.id)}
+                      onChange={() => togglePatient(patient.id)}
+                    />
+                  </div>
+                  <div className="col-span-3 flex items-center space-x-3">
+                    <div className="w-12 h-12 rounded-lg bg-cover bg-center bg-gray-200 flex items-center justify-center text-gray-600">
+                      {patient.firstName[0]}{patient.lastName[0]}
+                    </div>
+                    <div>
+                      <h3 className="font-medium text-gray-900">
+                        {patient.firstName} {patient.lastName}
+                      </h3>
+                    </div>
+                  </div>
+                  <div className="col-span-3">
+                    <p className="text-sm text-gray-600 line-clamp-1">{patient.email}</p>
+                  </div>
+                  <div className="col-span-1">
+                    <span className="text-sm text-gray-600">{patient.appointmentCount} appointments</span>
+                  </div>
+                  <div className="col-span-1">
+                    <Badge variant={patient.status === "active" ? "success" : "danger"}>
+                      {patient.status}
+                    </Badge>
+                  </div>
+                  <div className="col-span-2">
+                    <span className="text-sm text-gray-600">
+                      {new Date(patient.createdAt).toLocaleDateString()}
+                    </span>
+                  </div>
+                  <div className="col-span-1">
+                    <div className="flex space-x-2">
+                      <Link href={`/admin/patients/edit/${patient.id}`}>
+                        <Button variant="ghost" size="sm">
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            className="h-4 w-4"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth="2"
+                              d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                            />
+                          </svg>
+                        </Button>
+                      </Link>
+                      <Button variant="ghost" size="sm">
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          className="h-4 w-4 text-red-600"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth="2"
+                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                          />
+                        </svg>
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Mobile View */}
+                <div className="md:hidden p-4">
+                  <div className="flex items-start space-x-3">
+                    <input
+                      type="checkbox"
+                      className="rounded text-blue-500 focus:ring-blue-500 mt-1"
+                      checked={selectedPatients.includes(patient.id)}
+                      onChange={() => togglePatient(patient.id)}
+                    />
+                    <div className="flex-1">
+                      <div className="flex items-start space-x-3 mb-2">
+                        <div className="w-12 h-12 rounded-lg bg-gray-200 flex items-center justify-center text-gray-600">
+                          {patient.firstName[0]}{patient.lastName[0]}
+                        </div>
                         <div className="flex-1">
-                          <div className="flex items-center space-x-4 mb-3">
-                            <div className="text-center">
-                              <div className="text-lg font-bold text-blue-600">
-                                {new Date(appointment.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                              </div>
-                              <div className="text-sm text-gray-600">{appointment.time}</div>
-                            </div>
-                            <div className="h-12 w-px bg-gray-300"></div>
-                            <div>
-                              <h3 className="font-semibold text-gray-900">{appointment.doctor}</h3>
-                              <p className="text-sm text-gray-600">{appointment.department} • {appointment.type}</p>
-                              <div className="flex items-center space-x-1 mt-1">
-                                <MapPin className="h-3 w-3 text-gray-400" />
-                                <span className="text-xs text-gray-500">{appointment.location}</span>
-                              </div>
-                            </div>
-                          </div>
-                          
-                          {appointment.notes && (
-                            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-3">
-                              <p className="text-sm text-yellow-800">
-                                <strong>Note:</strong> {appointment.notes}
-                              </p>
-                            </div>
-                          )}
+                          <h3 className="font-medium text-gray-900">
+                            {patient.firstName} {patient.lastName}
+                          </h3>
+                          <p className="text-sm text-gray-600">{patient.appointmentCount} appointments</p>
                         </div>
-                        
-                        <div className="flex flex-col items-end space-y-2">
-                          <span className={`px-3 py-1 rounded-full text-xs font-medium border ${getStatusColor(appointment.status)}`}>
-                            {appointment.status.charAt(0).toUpperCase() + appointment.status.slice(1)}
-                          </span>
-                          <div className="flex space-x-2">
-                            <button className="text-blue-600 hover:text-blue-800 text-sm font-medium">Reschedule</button>
-                            <button className="text-red-600 hover:text-red-800 text-sm font-medium">Cancel</button>
-                          </div>
-                        </div>
+                        <Badge variant={patient.status === "active" ? "success" : "danger"}>
+                          {patient.status}
+                        </Badge>
                       </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            {/* Recent Appointments */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200">
-              <div className="p-6 border-b border-gray-200">
-                <h2 className="text-xl font-semibold text-gray-900">Recent Appointments</h2>
-              </div>
-              
-              <div className="p-6">
-                <div className="space-y-4">
-                  {recentAppointments.map((appointment) => (
-                    <div key={appointment.id} className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors">
+                      <p className="text-sm text-gray-600 mb-3">{patient.email}</p>
                       <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-4">
-                          <div className="text-center">
-                            <div className="text-sm font-medium text-gray-900">
-                              {new Date(appointment.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                            </div>
-                            <div className="text-xs text-gray-500">{appointment.time}</div>
-                          </div>
-                          <div className="h-8 w-px bg-gray-300"></div>
-                          <div>
-                            <h4 className="font-medium text-gray-900">{appointment.doctor}</h4>
-                            <p className="text-sm text-gray-600">{appointment.department} • {appointment.type}</p>
-                          </div>
-                        </div>
-                        
-                        <div className="flex items-center space-x-3">
-                          {appointment.prescription === 'Available' && (
-                            <button className="text-blue-600 hover:text-blue-800 text-sm font-medium flex items-center space-x-1">
-                              <Pill className="h-4 w-4" />
-                              <span>Prescription</span>
-                            </button>
-                          )}
-                          {appointment.labResults && (
-                            <button className="text-green-600 hover:text-green-800 text-sm font-medium flex items-center space-x-1">
-                              <FileText className="h-4 w-4" />
-                              <span>Lab Results</span>
-                            </button>
-                          )}
-                          <span className={`px-2 py-1 rounded-full text-xs font-medium border ${getStatusColor(appointment.status)}`}>
-                            {appointment.status}
-                          </span>
+                        <span className="text-xs text-gray-500">
+                          Created: {new Date(patient.createdAt).toLocaleDateString()}
+                        </span>
+                        <div className="flex space-x-2">
+                          <Link href={`/admin/patients/edit/${patient.id}`}>
+                            <Button variant="ghost" size="sm">
+                              <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                className="h-4 w-4"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke="currentColor"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth="2"
+                                  d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                                />
+                              </svg>
+                            </Button>
+                          </Link>
+                          <Button variant="ghost" size="sm">
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              className="h-4 w-4 text-red-600"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                              stroke="currentColor"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth="2"
+                                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                              />
+                            </svg>
+                          </Button>
                         </div>
                       </div>
                     </div>
-                  ))}
+                  </div>
                 </div>
               </div>
-            </div>
+            ))}
           </div>
 
-          {/* Right Sidebar */}
-          <div className="space-y-6">
-            {/* Health Metrics */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Health Metrics</h3>
-              <div className="space-y-4">
-                {healthMetrics.map((metric, index) => (
-                  <div key={index} className="flex items-center justify-between">
-                    <div className="flex items-center space-x-3">
-                      <div className={`p-2 rounded-lg ${getStatusIcon(metric.status)}`}>
-                        <metric.icon className="h-4 w-4" />
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium text-gray-900">{metric.label}</p>
-                        <p className="text-lg font-bold text-gray-900">{metric.value}</p>
-                      </div>
-                    </div>
-                    <div className={`w-3 h-3 rounded-full ${
-                      metric.status === 'normal' ? 'bg-green-400' :
-                      metric.status === 'warning' ? 'bg-yellow-400' : 'bg-red-400'
-                    }`}></div>
-                  </div>
-                ))}
-              </div>
+          {/* Empty State */}
+          {filteredPatients.length === 0 && (
+            <div className="text-center py-12">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-12 w-12 text-gray-400 mx-auto mb-4"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                  d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
+              </svg>
+              <h3 className="text-lg font-medium text-gray-900 mb-2">No patients found</h3>
+              <p className="text-gray-600 mb-4">Try adjusting your search or filter criteria.</p>
             </div>
-
-            {/* Patient Info */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Patient Information</h3>
-              <div className="space-y-3">
-                <div className="flex justify-between">
-                  <span className="text-sm text-gray-600">Patient ID</span>
-                  <span className="text-sm font-medium text-gray-900">{patient.id}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-sm text-gray-600">Age</span>
-                  <span className="text-sm font-medium text-gray-900">{patient.age} years</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-sm text-gray-600">Blood Type</span>
-                  <span className="text-sm font-medium text-gray-900">{patient.bloodType}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-sm text-gray-600">Gender</span>
-                  <span className="text-sm font-medium text-gray-900">{patient.gender}</span>
-                </div>
-              </div>
-              
-              <div className="mt-6 pt-4 border-t border-gray-200">
-                <h4 className="font-medium text-gray-900 mb-2">Contact Information</h4>
-                <div className="space-y-2">
-                  <div className="flex items-center space-x-2">
-                    <Phone className="h-4 w-4 text-gray-400" />
-                    <span className="text-sm text-gray-600">{patient.phone}</span>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Mail className="h-4 w-4 text-gray-400" />
-                    <span className="text-sm text-gray-600">{patient.email}</span>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <MapPin className="h-4 w-4 text-gray-400" />
-                    <span className="text-sm text-gray-600">{patient.address}</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Quick Actions */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h3>
-              <div className="space-y-3">
-                <button className="w-full flex items-center space-x-3 p-3 rounded-lg hover:bg-gray-50 transition-colors text-left">
-                  <Calendar className="h-5 w-5 text-blue-600" />
-                  <span className="font-medium text-gray-900">Book Appointment</span>
-                </button>
-                <button className="w-full flex items-center space-x-3 p-3 rounded-lg hover:bg-gray-50 transition-colors text-left">
-                  <FileText className="h-5 w-5 text-green-600" />
-                  <span className="font-medium text-gray-900">View Lab Reports</span>
-                </button>
-                <button className="w-full flex items-center space-x-3 p-3 rounded-lg hover:bg-gray-50 transition-colors text-left">
-                  <Pill className="h-5 w-5 text-purple-600" />
-                  <span className="font-medium text-gray-900">My Prescriptions</span>
-                </button>
-                <button className="w-full flex items-center space-x-3 p-3 rounded-lg hover:bg-gray-50 transition-colors text-left">
-                  <Phone className="h-5 w-5 text-orange-600" />
-                  <span className="font-medium text-gray-900">Contact Support</span>
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
-  )
+  );
 }
